@@ -15,11 +15,11 @@ from rdflib import (
 from rdflib import URIRef as IRI
 from rdflib.resource import Resource as RdfsResource
 
-from ..utils import NS_DEFAULT, legalize_for_iri
-from .types import GraphType, IdentifierType, LangType, PathType
+from ..utils import NS_DEFAULT, legalize_iri
+from .types import GraphType, IdentifierType, LangType
 from .utils import DEFAULT_IDENTIFIER_PROPERTY
 
-PredicateType = "Resource" | IRI
+ResourceOrIri = "Resource" | IRI
 ObjectType = "Resource" | IRI | Literal | Any
 
 
@@ -30,10 +30,7 @@ class Resource(RdfsResource):
     _identifier_property: IRI | dict[str, IRI] = DEFAULT_IDENTIFIER_PROPERTY
 
     # Resource's RDFS type
-    _type: IRI = RDFS.Resource
-
-    # Resource's path
-    path: PathType = [_type]
+    _type: ResourceOrIri = RDFS.Resource
 
     def __init__(
         self,
@@ -41,6 +38,7 @@ class Resource(RdfsResource):
         identifier: Optional[IdentifierType] = None,
         label: Optional[str] = None,
         iri: Optional[IRI] = None,
+        path: Optional[list[str]] = None,
         namespace: Optional[Namespace] = None,
         lang: LangType = None,
     ):
@@ -48,23 +46,26 @@ class Resource(RdfsResource):
 
         Args:
             graph (Graph | ConjunctiveGraph):
-                Graph to search or create resource into.
+                Graph to search or create Resource into.
             identifier (Optional[str | int], optional):
                 Resource's identifier. Defaults to None.
             label (Optional[str], optional):
                 Resource's label. Defaults to None.
             iri (Optional[IRI], optional):
                 Resource's IRI. Defaults to None.
+            path (Optional[list[str]], optional):
+                Resource's base path. Defaults to None.
             namespace (Optional[Namespace], optional):
-                Namespace to search or create resource into. Defaults to None.
+                Namespace to search or create Resource into. Defaults to None.
             lang (Optional[str], optional):
                 Resource's language. Defaults to None.
         """
 
         assert identifier is not None or label is not None or iri is not None
 
-        # Set language
+        # Set language and path
         self.lang = lang
+        self.path = path if path is not None else [self._type.fragment]
 
         # If an IRI is directly specified
         if iri is not None:
@@ -87,22 +88,13 @@ class Resource(RdfsResource):
                     self.lang
                 ]
 
-        # Format Resource's identifier
-        identifier = self.format_identifier(identifier)
-
-        # Generate Resource's IRI from its identifier
-        iri = self.generate_iri(identifier)
+        # Build Resource's IRI
+        iri = self.build_iri(identifier)
 
         # If Resource was never initialized before,
         # Add type and identifier to the specified graph
         if not (iri, None, None) in graph:
-            resource = Resource(graph, iri=iri)
-
-            resource.add(RDF.type, self._type)
-            resource.set(self._identifier_property, identifier)
-
-            if label is not None:
-                resource.set_pref_label(label, lang=self.lang)
+            self.initialize_resource(graph, iri, label)
 
         # Set entire graph as an attribute
         # ie. not just subgraph, if applicable
@@ -137,13 +129,13 @@ class Resource(RdfsResource):
 
         return str(identifier)
 
-    def generate_iri(
-        self, identifier: str, namespace: Namespace = NS_DEFAULT
+    def build_iri(
+        self, identifier: IdentifierType, namespace: Namespace = NS_DEFAULT
     ) -> IRI:
         """Build Resource's IRI from its identifier.
 
         Args:
-            identifier (str):
+            identifier (str | int):
                 Resource's identifier.
             namespace (Namespace, optional):
                 Resource's namespace. Defaults to NS_DEFAULT.
@@ -152,21 +144,74 @@ class Resource(RdfsResource):
             IRI: Resource's IRI.
         """
 
-        # Build path
-        path = "/".join(self.path)
+        # Format Resource's identifier, and create its fragment from it
+        identifier = self.format_identifier(identifier)
+        self.identifier = legalize_iri(identifier)
 
-        # Build fragment
-        identifier_property = self._identifier_property.fragment
-        identifier = legalize_for_iri(identifier)
-        fragment = f"{identifier_property}={identifier}"
-
-        # Build IRI
-        iri = f"{path}#{fragment}"
-        iri = namespace[iri]
+        # Build Resource's path, and then its IRI from it
+        path = self.build_path(self.identifier)
+        iri = namespace[path]
 
         return iri
 
-    def get_attribute(self, predicate: PredicateType) -> IRI | Literal:
+    def build_path(self, identifier: str) -> str:
+        """Add Resource's identifier to IRI path.
+
+        Args:
+            identifier (str):
+                Resource's identifier.
+
+        Returns:
+            str: Full Resource's IRI path.
+        """
+
+        # Build Resource's base path
+        path = "/".join(self.path)
+
+        # TODO: When different identifier properties are used
+        #       with the same type of resources, as two different
+        #       resources may have the same fragment.
+        #       HPrepending "self._identifier_property.fragment"
+        #       to the fragment solves the problem, but resources
+        #       become harder to fetch, as one needs the resource's
+        #       own identifier property to find it.
+        #
+        # identifier_property = self._identifier_property.fragment
+        # fragment = f"{identifier_property}={identifier}"
+        # path = f"{path}#{fragment}"
+
+        # Add identifier to path as a fragment
+        path = f"{path}#{identifier}"
+
+        return path
+
+    def initialize_resource(
+        self, graph: GraphType, iri: IRI, label: Optional[str]
+    ) -> None:
+        """Create RDFS Resource
+
+        Args:
+            graph (Graph | ConjunctiveGraph):
+                Graph to search or create Resource into.
+            iri (IRI):
+                Resource's IRI.
+            label (Optional[str]):
+                Resource's label.
+        """
+
+        # Create resource
+        resource = Resource(graph, iri=iri)
+
+        # Add its type and identifier
+        resource.add(RDF.type, self._type)
+        resource.set(self._identifier_property, self.identifier)
+
+        # If a label is specified
+        if label is not None:
+            # Add it as SKOS.prefLabel
+            resource.set_pref_label(label, lang=self.lang)
+
+    def get_attribute(self, predicate: ResourceOrIri) -> IRI | Literal:
         """Get value of (unique) attribute.
 
         Args:
@@ -181,7 +226,7 @@ class Resource(RdfsResource):
 
     def prepare_p_o(
         self,
-        p: PredicateType,
+        p: ResourceOrIri,
         o: ObjectType,
         lang: LangType = None,
     ) -> tuple[IRI, IRI | Literal]:
@@ -225,7 +270,7 @@ class Resource(RdfsResource):
 
     def add(
         self,
-        p: PredicateType,
+        p: ResourceOrIri,
         o: ObjectType,
         lang: LangType = None,
     ) -> None:
@@ -248,7 +293,7 @@ class Resource(RdfsResource):
 
     def set(
         self,
-        p: PredicateType,
+        p: ResourceOrIri,
         o: ObjectType,
         lang: LangType = None,
         force: bool = False,

@@ -6,7 +6,7 @@ from inflection import dasherize
 from rdflib import DCTERMS, OWL, RDF, RDFS, SKOS, XSD, Namespace
 
 from ..models.namespace import CustomNamespace
-from ..utils import format_text, legalize_for_iri
+from ..utils import format_text, legalize_iri
 from .config import AUTHORITY_DEFAULT, FLAVOUR_DEFAULT, FLAVOUR_SHAPES
 
 
@@ -31,7 +31,7 @@ def build_custom_namespace(
     ), "authority should be of the form 'abcde.fg' or 'abcdef.ghi'"
 
     # Get and format authority and flavour
-    authority = legalize_for_iri(dasherize(format_text(authority)))
+    authority = legalize_iri(dasherize(format_text(authority)))
     if shape and flavour == FLAVOUR_DEFAULT:
         flavour = FLAVOUR_SHAPES
 
@@ -40,7 +40,7 @@ def build_custom_namespace(
 
     # If any, add path to IRI
     if path:
-        path = legalize_for_iri(dasherize(format_text(path)))
+        path = legalize_iri(dasherize(format_text(path)))
         iri += f"/{path}"
 
     # Create namespace from IRI, and return it

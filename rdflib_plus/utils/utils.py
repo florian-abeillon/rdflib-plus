@@ -11,7 +11,7 @@ ILLEGAL_CHARS_TO_PERCENT_ENCODED_CHARS = {
 }
 
 
-def legalize_for_iri(text: str) -> str:
+def legalize_iri(text: str) -> str:
     """Make text legal for IRI use.
 
     Args:
