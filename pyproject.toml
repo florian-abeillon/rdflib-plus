@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "rdflib-plus"
+version = "0.1.0"
+description = ""
+authors = ["Florian Abeillon <florian.abeillon@proton.me>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+rdflib = "^7.0.0"
+inflection = "^0.5.1"
+black = "^23.9.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
