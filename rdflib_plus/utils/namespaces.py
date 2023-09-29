@@ -5,9 +5,13 @@ import re
 from inflection import dasherize
 from rdflib import DCTERMS, OWL, RDF, RDFS, SKOS, XSD, Namespace
 
-from ..models.namespace import CustomNamespace
-from ..utils import format_text, legalize_iri
-from .config import AUTHORITY_DEFAULT, FLAVOUR_DEFAULT, FLAVOUR_SHAPES
+from rdflib_plus.models.namespace import CustomNamespace
+from rdflib_plus.utils import format_text, legalize_iri
+from rdflib_plus.utils.config import (
+    AUTHORITY_DEFAULT,
+    FLAVOUR_DEFAULT,
+    FLAVOUR_SHAPES,
+)
 
 
 def build_custom_namespace(

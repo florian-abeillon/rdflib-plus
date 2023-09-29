@@ -15,9 +15,9 @@ from rdflib import (
 from rdflib import URIRef as IRI
 from rdflib.resource import Resource as RdfsResource
 
-from ..utils import NS_DEFAULT, legalize_iri
-from .types import GraphType, IdentifierType, LangType
-from .utils import DEFAULT_IDENTIFIER_PROPERTY
+from rdflib_plus.models.types import GraphType, IdentifierType, LangType
+from rdflib_plus.models.utils import DEFAULT_IDENTIFIER_PROPERTY
+from rdflib_plus.utils import NS_DEFAULT, legalize_iri
 
 ResourceOrIri = "Resource" | IRI
 ObjectType = "Resource" | IRI | Literal | Any

@@ -7,7 +7,7 @@ import yaml
 from rdflib import Literal, Namespace, URIRef
 from yaml.loader import Loader
 
-from .namespaces import PREFIXES
+from rdflib_plus.utils.namespaces import PREFIXES
 
 
 def normalize_value(
