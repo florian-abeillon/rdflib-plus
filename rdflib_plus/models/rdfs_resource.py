@@ -3,6 +3,8 @@
 import warnings
 from typing import Any, Optional
 
+from langcodes import standardize_tag
+from langcodes.tag_parser import LanguageTagError
 from rdflib import (
     DCTERMS,
     RDF,
@@ -15,9 +17,14 @@ from rdflib import (
 from rdflib import URIRef as IRI
 from rdflib.resource import Resource as RdfsResource
 
-from rdflib_plus.models.types import GraphType, IdentifierType, LangType
 from rdflib_plus.models.utils import DEFAULT_IDENTIFIER_PROPERTY
-from rdflib_plus.utils import NS_DEFAULT, legalize_iri
+from rdflib_plus.utils import DEFAULT_NAMESPACE, legalize_for_iri
+from rdflib_plus.utils.types import (
+    GraphType,
+    IdentifierPropertyType,
+    IdentifierType,
+    LangType,
+)
 
 # Define specific custom types
 ResourceOrIri = "Resource" | IRI
@@ -28,7 +35,7 @@ class Resource(RdfsResource):
     """Base triplestore resource"""
 
     # Property that links Resource to its identifier
-    _identifier_property: IRI | dict[str, IRI] = DEFAULT_IDENTIFIER_PROPERTY
+    _identifier_property: IdentifierPropertyType = DEFAULT_IDENTIFIER_PROPERTY
 
     # Resource's RDF type
     _type: ResourceOrIri = RDFS.Resource
@@ -74,8 +81,23 @@ class Resource(RdfsResource):
 
         assert identifier is not None or label is not None or iri is not None
 
-        # Set language and path
-        self.lang = lang
+        # Format and set language
+        self.lang = None
+        if lang is not None:
+            try:
+                self.lang = standardize_tag(lang)
+            except LanguageTagError:
+                warnings.warn(
+                    f"Language code '{lang}' could not be parsed "
+                    "according to BCP 47. Setting Resource "
+                    f"""'{
+                        iri if iri is not None
+                        else identifier if identifier is not None
+                        else label
+                    }' as None."""
+                )
+
+        # Set path
         self.path = path if path is not None else [self._type.fragment]
 
         # If an IRI is directly specified
@@ -144,7 +166,9 @@ class Resource(RdfsResource):
         return str(identifier)
 
     def build_iri(
-        self, identifier: IdentifierType, namespace: Namespace = NS_DEFAULT
+        self,
+        identifier: IdentifierType,
+        namespace: Namespace = DEFAULT_NAMESPACE,
     ) -> IRI:
         """Build Resource's IRI from its identifier.
 
@@ -159,7 +183,7 @@ class Resource(RdfsResource):
         """
 
         # Format identifier for use in IRI
-        identifier = legalize_iri(identifier)
+        identifier = legalize_for_iri(identifier)
 
         # Build path, and then its IRI from it
         path = self.build_path(identifier)

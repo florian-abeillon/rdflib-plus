@@ -9,8 +9,14 @@ from rdflib import URIRef as IRI
 from rdflib.term import _serial_number_generator
 
 from rdflib_plus.models.rdfs_resource import Resource
-from rdflib_plus.models.types import GraphType, IdentifierType, LangType
-from rdflib_plus.utils import NS_DEFAULT, format_text
+from rdflib_plus.models.utils import DEFAULT_IDENTIFIER_PROPERTY
+from rdflib_plus.utils import DEFAULT_NAMESPACE, format_label
+from rdflib_plus.utils.types import (
+    GraphType,
+    IdentifierPropertyType,
+    IdentifierType,
+    LangType,
+)
 
 # Define specific custom types
 SuperclassType = Optional["Class" | IRI | list["Class" | IRI]]
@@ -34,6 +40,7 @@ class Class(Resource):
         hierarchical_path: bool = False,
         lang: LangType = None,
         bnode: bool = False,
+        identifier_property: IdentifierPropertyType = DEFAULT_IDENTIFIER_PROPERTY,
     ):
         """Initialize Class.
 
@@ -54,6 +61,9 @@ class Class(Resource):
             bnode (bool, optional):
                 Whether instances of Class should be blank nodes.
                 Defaults to False.
+            identifier_property (bool, optional):
+                Property that links a Class's instance to its identifier.
+                Defaults to DEFAULT_IDENTIFIER_PROPERTY.
         """
 
         # Set whether instances of Class should be blank nodes
@@ -80,6 +90,13 @@ class Class(Resource):
         # Create Class as a Resource
         super().__init__(
             graph, label=label, path=path, namespace=namespace, lang=lang
+        )
+
+        # Create class to create Class's instances
+        self.instance = type(
+            f"{self.id_}Instance",
+            (Resource,),
+            {"_type": self, "_identifier_property": identifier_property},
         )
 
         # If superclass(es) was specified
@@ -115,7 +132,7 @@ class Class(Resource):
 
     @staticmethod
     def format_identifier(identifier: str) -> str:
-        """Format Class's identifier.
+        """Format Class's identifier (in PascalCase).
 
         Args:
             identifier (str):
@@ -125,7 +142,7 @@ class Class(Resource):
             str: Formatted Class's identifier.
         """
 
-        return camelize(format_text(identifier))
+        return camelize(format_label(identifier))
 
     def __call__(
         self,
@@ -162,12 +179,11 @@ class Class(Resource):
             # Generate blank node identifier
             identifier = _serial_number_generator()()
 
-        # Create instance
-        instance = Resource(
+        # Create instance of Class
+        instance = self.instance(
             graph,
             identifier=identifier,
             label=label,
-            path=self.path,
             lang=lang,
         )
 
@@ -175,7 +191,7 @@ class Class(Resource):
 
     @classmethod
     def format_fragment(
-        cls, fragment: str | IRI, namespace: Namespace = NS_DEFAULT
+        cls, fragment: str | IRI, namespace: Namespace = DEFAULT_NAMESPACE
     ) -> IRI:
         """Format fragment of IRI using Class's method.
 

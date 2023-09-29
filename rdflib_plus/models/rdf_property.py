@@ -8,8 +8,8 @@ from rdflib import OWL, RDF, RDFS, Namespace
 from rdflib import URIRef as IRI
 
 from rdflib_plus.models.rdfs_class import Class
-from rdflib_plus.models.types import GraphType, LangType
-from rdflib_plus.utils import format_text
+from rdflib_plus.utils import format_label
+from rdflib_plus.utils.types import GraphType, LangType
 
 # Define specific custom types
 SuperpropertyType = Optional["Property" | IRI | list["Property" | IRI]]
@@ -91,7 +91,7 @@ class Property(Class):
 
     @staticmethod
     def format_identifier(identifier: str) -> str:
-        """Format Property's identifier.
+        """Format Property's identifier (in camelCase).
 
         Args:
             identifier (str): Property's identifier
@@ -100,4 +100,4 @@ class Property(Class):
             str: Formatted Property's identifier
         """
 
-        return camelize(format_text(identifier), uppercase_first_letter=False)
+        return camelize(format_label(identifier), uppercase_first_letter=False)

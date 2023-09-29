@@ -5,6 +5,7 @@ from rdflib import DCTERMS, Namespace
 from rdflib_plus.models.rdf_property import Property
 from rdflib_plus.models.rdfs_class import Class
 
+# Default property to link a Resource to its identifier
 DEFAULT_IDENTIFIER_PROPERTY = DCTERMS.identifier
 
 

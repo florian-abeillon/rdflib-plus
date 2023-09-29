@@ -10,6 +10,8 @@ python = "^3.10"
 rdflib = "^7.0.0"
 inflection = "^0.5.1"
 black = "^23.9.1"
+langcodes = "^3.3.0"
+pyyaml = "^6.0.1"
 
 
 [build-system]

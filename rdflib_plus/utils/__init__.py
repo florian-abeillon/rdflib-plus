@@ -1,4 +1,9 @@
-from .config import VERSION
-from .namespaces import NS_DEFAULT, NS_SHAPES, PREFIXES, build_custom_namespace
+from ..config import VERSION
+from ..namespace.namespaces import (
+    DEFAULT_NAMESPACE,
+    PREFIXES,
+    SHAPES_NAMESPACE,
+    build_custom_namespace,
+)
 from .parse import parse_yaml
-from .utils import format_text, legalize_iri
+from .utils import format_label, legalize_for_iri
