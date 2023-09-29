@@ -66,11 +66,11 @@ class Property(Class):
 
         # Look for patterns like "has..." or "is...Of"
         # In Property's label
-        res = re.match(r"has([A-Z]\w*)$", self.id)
+        res = re.match(r"has([A-Z]\w*)$", self.id_)
         if res:
             inverse_property = f"is{res.group(1)}Of"
         else:
-            res = re.match(r"is([A-Z]\w*)Of$", self.id)
+            res = re.match(r"is([A-Z]\w*)Of$", self.id_)
             if res:
                 inverse_property = f"has{res.group(1)}"
 

@@ -1,4 +1,4 @@
-"""Base Resource class"""
+"""RDFS Resource class"""
 
 import warnings
 from typing import Any, Optional
@@ -100,10 +100,10 @@ class Resource(RdfsResource):
                 ]
 
         # Format identifier
-        self.id = self.format_identifier(identifier)
+        self.id_ = self.format_identifier(identifier)
 
         # Build IRI
-        iri = self.build_iri(self.id)
+        iri = self.build_iri(self.id_)
 
         # If Resource was never initialized before,
         # Add type and identifier to the specified graph

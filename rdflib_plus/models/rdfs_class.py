@@ -6,9 +6,10 @@ from urllib.parse import urldefrag
 from inflection import camelize
 from rdflib import RDFS, Namespace
 from rdflib import URIRef as IRI
+from rdflib.term import _serial_number_generator
 
 from rdflib_plus.models.rdfs_resource import Resource
-from rdflib_plus.models.types import GraphType, LangType
+from rdflib_plus.models.types import GraphType, IdentifierType, LangType
 from rdflib_plus.utils import NS_DEFAULT, format_text
 
 # Define specific custom types
@@ -32,6 +33,7 @@ class Class(Resource):
         super_class: SuperclassType = None,
         hierarchical_path: bool = False,
         lang: LangType = None,
+        bnode: bool = False,
     ):
         """Initialize Class.
 
@@ -49,7 +51,13 @@ class Class(Resource):
                 Defaults to False.
             lang (Optional[str], optional):
                 Class's language. Defaults to None.
+            bnode (bool, optional):
+                Whether instances of Class should be blank nodes.
+                Defaults to False.
         """
+
+        # Set whether instances of Class should be blank nodes
+        self.bnode = bnode
 
         # Initialize parent hierarchy
         path = []
@@ -118,6 +126,52 @@ class Class(Resource):
         """
 
         return camelize(format_text(identifier))
+
+    def __call__(
+        self,
+        graph: Optional[GraphType] = None,
+        identifier: Optional[IdentifierType] = None,
+        label: Optional[str] = None,
+        lang: LangType = None,
+    ) -> Resource:
+        """Create instance of Class.
+
+        Args:
+            graph (Optional[Graph | ConjunctiveGraph]):
+                Graph to search or create instance into. Defaults to None.
+            identifier (Optional[str | int], optional):
+                Instance's identifier. Defaults to None.
+            label (Optional[str], optional):
+                Instance's label. Defaults to None.
+            lang (Optional[str], optional):
+                Instance's language. Defaults to None.
+
+        Returns:
+            Resource: Instance of Class.
+        """
+
+        # If no graph was specified, use Class's one
+        if graph is None:
+            graph = self._graph
+
+        # If self is an instance of a blank nodes class
+        if self.bnode:
+            # Make sure no identifier nor label was given
+            assert identifier is None and label is None
+
+            # Generate blank node identifier
+            identifier = _serial_number_generator()()
+
+        # Create instance
+        instance = Resource(
+            graph,
+            identifier=identifier,
+            label=label,
+            path=self.path,
+            lang=lang,
+        )
+
+        return instance
 
     @classmethod
     def format_fragment(
