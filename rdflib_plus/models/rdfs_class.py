@@ -1,6 +1,7 @@
 """RDFS Class class"""
 
 from typing import Optional
+from urllib.parse import urldefrag
 
 from inflection import camelize
 from rdflib import RDFS, Namespace
@@ -86,26 +87,30 @@ class Class(Resource):
 
         return camelize(format_text(identifier))
 
-    # TODO
     @classmethod
-    def format_fragment(cls, fragment: str | IRI) -> IRI:
-        """Format fragment of IRI using Class method
+    def format_fragment(
+        cls, fragment: str | IRI, namespace: Namespace = NS_DEFAULT
+    ) -> IRI:
+        """Format fragment of IRI using Class's method.
 
         Args:
-            fragment (str | IRI): _description_
+            fragment (str | IRI):
+                Fragment or IRI to be formatted.
 
         Returns:
-            IRI: _description_
+            IRI: IRI with formatted fragment.
         """
 
         # If fragment is an IRI
         if isinstance(fragment, IRI):
-            # If not custom IRI, return IRI
-            if not fragment.startswith(NS_DEFAULT):
-                return fragment
+            # # If not custom IRI, return IRI
+            # if not fragment.startswith(NS_DEFAULT):
+            #     return fragment
 
-            fragment = fragment.fragment
+            namespace, fragment = urldefrag(fragment)
 
-        # Format fragment
+        # Format fragment, and create IRI from it
         fragment = cls.format_identifier(fragment)
-        return NS_DEFAULT[fragment]
+        iri = namespace[fragment]
+
+        return iri

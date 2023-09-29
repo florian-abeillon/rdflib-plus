@@ -88,13 +88,16 @@ class Resource(RdfsResource):
                     self.lang
                 ]
 
-        # Build Resource's IRI
+        # Format identifier
+        identifier = self.format_identifier(identifier)
+
+        # Build IRI
         iri = self.build_iri(identifier)
 
         # If Resource was never initialized before,
         # Add type and identifier to the specified graph
         if not (iri, None, None) in graph:
-            self.initialize_resource(graph, iri, label)
+            self.initialize_resource(graph, iri, identifier, label)
 
         # Set entire graph as an attribute
         # ie. not just subgraph, if applicable
@@ -144,12 +147,11 @@ class Resource(RdfsResource):
             IRI: Resource's IRI.
         """
 
-        # Format Resource's identifier, and create its fragment from it
-        identifier = self.format_identifier(identifier)
-        self.identifier = legalize_iri(identifier)
+        # Format identifier for use in IRI
+        identifier = legalize_iri(identifier)
 
-        # Build Resource's path, and then its IRI from it
-        path = self.build_path(self.identifier)
+        # Build path, and then its IRI from it
+        path = self.build_path(identifier)
         iri = namespace[path]
 
         return iri
@@ -186,7 +188,7 @@ class Resource(RdfsResource):
         return path
 
     def initialize_resource(
-        self, graph: GraphType, iri: IRI, label: Optional[str]
+        self, graph: GraphType, iri: IRI, identifier: str, label: Optional[str]
     ) -> None:
         """Create RDFS Resource
 
@@ -204,7 +206,7 @@ class Resource(RdfsResource):
 
         # Add its type and identifier
         resource.add(RDF.type, self._type)
-        resource.set(self._identifier_property, self.identifier)
+        resource.set(self._identifier_property, identifier)
 
         # If a label is specified
         if label is not None:
