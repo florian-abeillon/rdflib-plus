@@ -19,6 +19,7 @@ from rdflib_plus.models.types import GraphType, IdentifierType, LangType
 from rdflib_plus.models.utils import DEFAULT_IDENTIFIER_PROPERTY
 from rdflib_plus.utils import NS_DEFAULT, legalize_iri
 
+# Define specific custom types
 ResourceOrIri = "Resource" | IRI
 ObjectType = "Resource" | IRI | Literal | Any
 
@@ -29,8 +30,18 @@ class Resource(RdfsResource):
     # Property that links Resource to its identifier
     _identifier_property: IRI | dict[str, IRI] = DEFAULT_IDENTIFIER_PROPERTY
 
-    # Resource's RDFS type
+    # Resource's RDF type
     _type: ResourceOrIri = RDFS.Resource
+
+    @property
+    def iri(self) -> IRI:
+        """Return Resource's IRI.
+
+        Returns:
+            IRI: RdfsResource '_identifier' attribute.
+        """
+
+        return self._identifier
 
     def __init__(
         self,
@@ -89,10 +100,10 @@ class Resource(RdfsResource):
                 ]
 
         # Format identifier
-        identifier = self.format_identifier(identifier)
+        self.id = self.format_identifier(identifier)
 
         # Build IRI
-        iri = self.build_iri(identifier)
+        iri = self.build_iri(self.id)
 
         # If Resource was never initialized before,
         # Add type and identifier to the specified graph
@@ -248,12 +259,11 @@ class Resource(RdfsResource):
 
         # If p is a Resource, get its IRI
         if isinstance(p, Resource):
-            p = p.identifier
+            p = p.iri
 
         # If o is a Resource, get its IRI
         if isinstance(o, Resource):
-            o = o.identifier
-
+            o = o.iri
         # Otherwise, if o is neither a plain IRI nor a Literal
         elif not isinstance(o, (IRI, Literal)):
             # If o is an empty string, raise warning
@@ -300,7 +310,7 @@ class Resource(RdfsResource):
         lang: LangType = None,
         force: bool = False,
     ) -> None:
-        """Set triple to self._graph.
+        """Set triple in self._graph.
 
         Args:
             p (Resource | IRI):
