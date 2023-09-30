@@ -52,7 +52,7 @@ class Resource(RdflibResource):
         """Return Resource's IRI.
 
         Returns:
-            IRI: RdfsResource '_identifier' attribute.
+            IRI: Resource '_identifier' attribute.
         """
 
         return self._identifier
@@ -114,7 +114,7 @@ class Resource(RdflibResource):
 
         # If an IRI is directly specified
         if iri is not None:
-            # Just create a RdfsResource using IRI
+            # Just create a Resource using IRI
             super().__init__(graph, iri)
             return
 
@@ -160,7 +160,7 @@ class Resource(RdflibResource):
             if isinstance(graph, ConjunctiveGraph):
                 graph = graph.get_context(namespace)
 
-        # Create RdfsResource in appropriate graph
+        # Create Resource in appropriate graph
         super().__init__(graph, iri)
 
     @staticmethod

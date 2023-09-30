@@ -5,7 +5,6 @@ from typing import Optional
 from rdflib import OWL, RDFS, Literal, Namespace
 from rdflib import URIRef as IRI
 
-from rdflib_plus.config import DEFAULT_VERSION
 from rdflib_plus.models.rdfs_resource import Resource
 from rdflib_plus.utils.types import (
     GraphType,
@@ -23,7 +22,7 @@ class Ontology(Resource):
     _identifier_property: IdentifierPropertyType = RDFS.label
 
     # Property constraints
-    _property_constraints: PropertyConstraintsType = {
+    _constraints: PropertyConstraintsType = {
         OWL.versionInfo: Literal,
         RDFS.comment: Literal,
         OWL.priorVersion: IRI,
@@ -37,7 +36,7 @@ class Ontology(Resource):
         self,
         graph: GraphType,
         label: str,
-        version: str = DEFAULT_VERSION,
+        version: Optional[str] = None,
         comment: Optional[str] = None,
         namespace: Optional[Namespace] = None,
         lang: LangType = None,
@@ -50,6 +49,10 @@ class Ontology(Resource):
                 Graph to search or create Ontology into.
             label (str):
                 Ontology's label.
+            version (Optional[str], optional):
+                Ontology's version. Defaults to None.
+            comment (Optional[str], optional):
+                Ontology's description. Defaults to None.
             namespace (Optional[Namespace], optional):
                 Namespace to search or create Ontology into. Defaults to None.
             lang (Optional[str], optional):
@@ -67,8 +70,9 @@ class Ontology(Resource):
             check_triples=check_triples,
         )
 
-        # Set ontology version
-        self.set(OWL.versionInfo, version)
+        # If any, set ontology version
+        if version is not None:
+            self.set(OWL.versionInfo, version)
 
         # If any, set ontology description as a RDFS comment
         if comment is not None:

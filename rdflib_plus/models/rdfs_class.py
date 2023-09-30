@@ -33,7 +33,7 @@ class Class(Resource):
 
     # Class's property constraints
     _constraints: PropertyConstraintsType = {
-        **Resource._constraints,
+        **RdfsResouResourcerce._constraints,
         **RDFS_CLASSES[_type]["constraints"],
     }
 

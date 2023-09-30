@@ -18,3 +18,10 @@ path_to_classes = path_to_dir / "definition_classes.yaml"
 RDFS_CLASSES = parse_class_definition_file(
     path_to_classes, properties=RDF_PROPERTIES
 )
+
+__all__ = [
+    "RDF_PROPERTIES",
+    "RDFS_CLASSES",
+    "parse_class_definition_file",
+    "parse_property_definition_file",
+]

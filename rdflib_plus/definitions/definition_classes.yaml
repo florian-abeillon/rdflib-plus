@@ -18,3 +18,27 @@ rdf:Property:
 
   properties:
     - rdfs:subPropertyOf
+
+owl:Ontology:
+
+  properties:
+    - rdfs:comment
+    - owl:versionInfo
+    - owl:priorVersion
+    - owl:imports
+
+owl:FunctionalProperty:
+
+  super_class: rdf:Property
+
+owl:InverseFunctionalProperty:
+
+  super_class: rdf:Property
+
+owl:SymmetricProperty:
+
+  super_class: rdf:Property
+
+owl:TransitiveProperty:
+
+  super_class: rdf:Property
