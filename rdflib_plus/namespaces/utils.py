@@ -5,15 +5,18 @@ from typing import Optional
 from rdflib import Namespace
 
 from rdflib_plus.config import (
-    DEFAULT_AUTHORITY,
+    DEFAULT_DOMAIN,
     DEFAULT_SCHEME,
-    SHAPE_AUTHORITY,
+    DEFAULT_SUBDOMAIN,
+    SHAPES_SUBDOMAIN,
 )
 from rdflib_plus.utils import legalize_for_iri
 
 
 def create_namespace(
     scheme: str = DEFAULT_SCHEME,
+    domain: str = DEFAULT_DOMAIN,
+    subdomain: Optional[str] = None,
     authority: Optional[str] = None,
     path: str = "",
     shape: bool = False,
@@ -23,8 +26,13 @@ def create_namespace(
     Args:
         scheme (str, optional):
             IRI's scheme. Defaults to DEFAULT_SCHEME.
+        domain (str, optional):
+            IRI's domain. Defaults to DEFAULT_DOMAIN.
+        subdomain (Optional[str], optional):
+            IRI's subdomain. Defaults to None.
         authority (Optional[str], optional):
-            IRI's authority. Defaults to None.
+            IRI's authority; if specified, overrules domain and subdomain.
+            Defaults to None.
         path (str, optional):
             IRI's path. Defaults to "".
         shape (bool, optional):
@@ -34,9 +42,15 @@ def create_namespace(
         Namespace: Namespace corresponding to the IRI built.
     """
 
-    # If no authority is specified, get appropriate default value
+    # If no authority is specified
     if authority is None:
-        authority = SHAPE_AUTHORITY if shape else DEFAULT_AUTHORITY
+        # If no subdomain is specified
+        if subdomain is None:
+            # Get appropriate default subdomain
+            subdomain = SHAPES_SUBDOMAIN if shape else DEFAULT_SUBDOMAIN
+
+        # Reconstruct authority from domain and subdomain
+        authority = f"{subdomain}.{domain}"
 
     # Format every part of the IRI
     scheme = legalize_for_iri(scheme)

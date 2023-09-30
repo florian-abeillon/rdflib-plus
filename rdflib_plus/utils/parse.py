@@ -1,79 +1,41 @@
-"""rdflib_plus/utils/parse.py"""
+"""Useful functions to parse data files"""
 
-import os
-from typing import Any, Optional
+from pathlib import Path
 
 import yaml
-from rdflib import Literal, Namespace, URIRef
 from yaml.loader import Loader
 
-from rdflib_plus.namespace.namespaces import PREFIXES
 
+def parse_yaml(path_to_file: str) -> dict:
+    """Parse yaml file into Python dict.
 
-def normalize_value(
-    value: dict | list | Any,
-    normalize_keys: bool = False,
-    namespace: Optional[Namespace] = None,
-) -> dict | list | URIRef | Literal:
-    """
-    Replace potential prefix into full namespace IRIs
-    """
+    Args:
+        path_to_file (str):
+            Path to the yaml file to parse.
 
-    # If dict, normalize (keys and) values
-    if isinstance(value, dict):
-        return {
-            normalize_value(key, namespace=namespace)
-            if normalize_keys
-            else key: normalize_value(v, namespace=namespace)
-            for key, v in value.items()
-        }
-
-    # If list, normalize each element
-    if isinstance(value, list):
-        return [normalize_value(v, namespace=namespace) for v in value]
-
-    if isinstance(value, str) and ":" in value:
-        for ns, prefix in PREFIXES.items():
-            # If a prefix is found
-            if value.startswith(f"{prefix}:"):
-                # Replace it by full namespace IRI
-                value = value[len(prefix) + 1 :]
-                return ns[value]
-
-        # If IRI
-        if value.startswith("http://"):
-            return URIRef(value)
-
-    # If a namespace is specified
-    if namespace:
-        return namespace[value]
-
-    return Literal(value)
-
-
-def parse_yaml(
-    filename: str,
-    __file__: str,
-    normalize: bool = False,
-    normalize_keys: bool = False,
-    namespace: Optional[Namespace] = None,
-) -> dict:
-    """
-    Parse yaml into dict
+    Returns:
+        dict: Parsed yaml file.
     """
 
-    # Get current directory
-    path = os.path.dirname(__file__)
-    path_to_file = os.path.join(path, filename)
+    # Parse yaml file
+    with open(path_to_file, encoding="utf-8") as f:
+        dictionary = yaml.load(f, Loader=Loader)
 
-    # Parse yaml
-    with open(path_to_file) as f:
-        d = yaml.load(f, Loader=Loader)
+    return dictionary
 
-    # Replace prefixes by full namespace IRIs, if required
-    if normalize:
-        d = normalize_value(
-            d, normalize_keys=normalize_keys, namespace=namespace
-        )
 
-    return d
+def parse_local_yaml(filename: str) -> dict:
+    """Parse yaml file into Python dict.
+
+    Args:
+        filename (str):
+            Name of the yaml file to parse.
+
+    Returns:
+        dict: Parsed yaml file.
+    """
+
+    # Get absolute path to file
+    path = Path(filename).resolve()
+
+    return parse_yaml(path)

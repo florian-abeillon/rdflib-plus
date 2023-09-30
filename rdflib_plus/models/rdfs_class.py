@@ -23,7 +23,7 @@ SuperclassType = Optional["Class" | IRI | list["Class" | IRI]]
 
 
 class Class(Resource):
-    """RDFS class"""
+    """RDFS Class"""
 
     # Property that links Class to its parent(s)
     _parent_property = RDFS.subClassOf
@@ -39,6 +39,7 @@ class Class(Resource):
         super_class: SuperclassType = None,
         hierarchical_path: bool = False,
         lang: LangType = None,
+        check_triples: bool = True,
         bnode: bool = False,
         identifier_property: IdentifierPropertyType = DEFAULT_IDENTIFIER_PROPERTY,
     ):
@@ -58,6 +59,9 @@ class Class(Resource):
                 Defaults to False.
             lang (Optional[str], optional):
                 Class's language. Defaults to None.
+            check_triples (bool, optional):
+                Whether to check triples that are added or set using Class.
+                Defaults to True.
             bnode (bool, optional):
                 Whether instances of Class should be blank nodes.
                 Defaults to False.
@@ -89,7 +93,12 @@ class Class(Resource):
 
         # Create Class as a Resource
         super().__init__(
-            graph, label=label, path=path, namespace=namespace, lang=lang
+            graph,
+            label=label,
+            path=path,
+            namespace=namespace,
+            lang=lang,
+            check_triples=check_triples,
         )
 
         # Create class to create Class's instances

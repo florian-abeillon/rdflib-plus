@@ -16,7 +16,7 @@ SuperpropertyType = Optional["Property" | IRI | list["Property" | IRI]]
 
 
 class Property(Class):
-    """RDF property"""
+    """RDF Property"""
 
     # Property that links Class to its parent(s)
     _parent_property = RDFS.subPropertyOf
@@ -32,6 +32,7 @@ class Property(Class):
         super_property: SuperpropertyType = None,
         hierarchical_path: bool = False,
         lang: LangType = None,
+        check_triples: bool = True,
     ):
         """Initialize Property.
 
@@ -50,6 +51,9 @@ class Property(Class):
                 Defaults to False.
             lang (Optional[str], optional):
                 Property's language. Defaults to None.
+            check_triples (bool, optional):
+                Whether to check triples that are added or set using Property.
+                Defaults to True.
         """
 
         super().__init__(
@@ -59,6 +63,7 @@ class Property(Class):
             super_class=super_property,
             hierarchical_path=hierarchical_path,
             lang=lang,
+            check_triples=check_triples,
         )
 
         # Initialize potential OWL Inverse property

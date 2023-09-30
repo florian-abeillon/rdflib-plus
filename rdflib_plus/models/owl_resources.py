@@ -13,6 +13,7 @@ def define_owl_resource(name: str, is_property: bool = False):
             Name of the new resource.
         is_property (bool, optional):
             Whether resource is a Property (or a mere Class).
+            Defaults to False.
     """
 
     return define_resource(name, OWL, is_property=is_property)

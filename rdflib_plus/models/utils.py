@@ -21,6 +21,7 @@ def define_resource(
             Namespace the resource belongs to.
         is_property (bool, optional):
             Whether resource is a Property (or a mere Class).
+            Defaults to False
     """
 
     super_class = Property if is_property else Class

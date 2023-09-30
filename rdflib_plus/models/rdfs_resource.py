@@ -17,6 +17,7 @@ from rdflib import (
 from rdflib import URIRef as IRI
 from rdflib.resource import Resource as RdfsResource
 
+from rdflib_plus.constraints import RESOURCE_CONSTRAINTS
 from rdflib_plus.models.utils import DEFAULT_IDENTIFIER_PROPERTY
 from rdflib_plus.utils import DEFAULT_NAMESPACE, legalize_for_iri
 from rdflib_plus.utils.types import (
@@ -24,18 +25,19 @@ from rdflib_plus.utils.types import (
     IdentifierPropertyType,
     IdentifierType,
     LangType,
+    PropertyConstraintsType,
+    ResourceOrIri,
 )
-
-# Define specific custom types
-ResourceOrIri = "Resource" | IRI
-ObjectType = "Resource" | IRI | Literal | Any
 
 
 class Resource(RdfsResource):
-    """Base triplestore resource"""
+    """RDFS Resource"""
 
     # Property that links Resource to its identifier
     _identifier_property: IdentifierPropertyType = DEFAULT_IDENTIFIER_PROPERTY
+
+    # Property constraints
+    _property_constraints: PropertyConstraintsType = RESOURCE_CONSTRAINTS
 
     # Resource's RDF type
     _type: ResourceOrIri = RDFS.Resource
@@ -59,6 +61,7 @@ class Resource(RdfsResource):
         path: Optional[list[str]] = None,
         namespace: Optional[Namespace] = None,
         lang: LangType = None,
+        check_triples: bool = True,
     ):
         """Initialize Resource.
 
@@ -77,6 +80,9 @@ class Resource(RdfsResource):
                 Namespace to search or create Resource into. Defaults to None.
             lang (Optional[str], optional):
                 Resource's language. Defaults to None.
+            check_triples (bool, optional):
+                Whether to check triples that are added or set using Resource.
+                Defaults to True.
         """
 
         assert identifier is not None or label is not None or iri is not None
@@ -97,8 +103,11 @@ class Resource(RdfsResource):
                     }' as None."""
                 )
 
-        # Set path
+        # Set path and check_triples
         self.path = path if path is not None else [self._type.fragment]
+        self.check_triples = (
+            check_triples and self._property_constraints is not None
+        )
 
         # If an IRI is directly specified
         if iri is not None:
@@ -130,7 +139,7 @@ class Resource(RdfsResource):
         # If Resource was never initialized before,
         # Add type and identifier to the specified graph
         if not (iri, None, None) in graph:
-            self.initialize_resource(graph, iri, identifier, label)
+            self.initialize_resource(graph, iri, label)
 
         # Set entire graph as an attribute
         # ie. not just subgraph, if applicable
@@ -223,7 +232,7 @@ class Resource(RdfsResource):
         return path
 
     def initialize_resource(
-        self, graph: GraphType, iri: IRI, identifier: str, label: Optional[str]
+        self, graph: GraphType, iri: IRI, label: Optional[str]
     ) -> None:
         """Create RDFS Resource
 
@@ -241,7 +250,7 @@ class Resource(RdfsResource):
 
         # Add its type and identifier
         resource.add(RDF.type, self._type)
-        resource.set(self._identifier_property, identifier)
+        resource.set(self._identifier_property, self.id_)
 
         # If a label is specified
         if label is not None:
@@ -261,11 +270,46 @@ class Resource(RdfsResource):
 
         return self._graph_full.value(self._identifier, predicate, any=False)
 
+    def check(
+        self,
+        p: IRI,
+        o: IRI | Literal,
+    ) -> bool:
+        """Check triple that is about to be added to or set in self._graph.
+
+        Args:
+            p (IRI):
+                Predicate of triple.
+            o (IRI | Literal):
+                Object of triple.
+
+        Returns:
+            bool: Whether <s, p, o> is valid.
+        """
+
+        try:
+            constraints = self._property_constraints[p]
+        except KeyError:
+            return False
+
+        return True
+
+        # TODO: To implement
+        # is_valid = all(
+        #     [
+        #         check_constraint(constraint, value, o)
+        #         for constraint, value in constraints.items()
+        #     ]
+        # )
+
+        # return is_valid
+
     def prepare_p_o(
         self,
         p: ResourceOrIri,
         o: ObjectType,
         lang: LangType = None,
+        check_triples: bool = False,
     ) -> tuple[IRI, IRI | Literal]:
         """Prepare predicate and object, to be added to triplestore.
 
@@ -276,6 +320,8 @@ class Resource(RdfsResource):
                 Object of triple.
             lang (Optional[str], optional):
                 Language of object. Defaults to None.
+            check_triples (bool, optional):
+                Whether to check the added triple. Defaults to False.
 
         Returns:
             tuple[IRI, IRI | Literal]: Prepared predicate and object.
@@ -302,6 +348,10 @@ class Resource(RdfsResource):
                 lang = self.lang
             o = Literal(o, lang=lang)
 
+        # If required, check that <s, p, o> is a valid triple
+        if self.check_triples or check_triples:
+            self.check(p, o)
+
         return p, o
 
     def add(
@@ -309,6 +359,7 @@ class Resource(RdfsResource):
         p: ResourceOrIri,
         o: ObjectType,
         lang: LangType = None,
+        check_triples: bool = False,
     ) -> None:
         """Add triple to self._graph.
 
@@ -319,10 +370,12 @@ class Resource(RdfsResource):
                 Object of triple.
             lang (Optional[str], optional):
                 Language of object. Defaults to None.
+            check_triples (bool, optional):
+                Whether to check the added triple. Defaults to False.
         """
 
         # Prepare predicate and object
-        p, o = self.prepare_p_o(p, o, lang=lang)
+        p, o = self.prepare_p_o(p, o, lang=lang, check_triples=check_triples)
 
         # Add object o to Resource, using predicate p
         super().add(p, o)
@@ -333,6 +386,7 @@ class Resource(RdfsResource):
         o: ObjectType,
         lang: LangType = None,
         force: bool = False,
+        check_triples: bool = False,
     ) -> None:
         """Set triple in self._graph.
 
@@ -346,10 +400,12 @@ class Resource(RdfsResource):
             force (bool, optional):
                 Whether to force the setting of triple (eg. if there was
                 one already). Defaults to False.
+            check_triples (bool, optional):
+                Whether to check the added triple. Defaults to False.
         """
 
         # Prepare predicate and object
-        p, o = self.prepare_p_o(p, o, lang=lang)
+        p, o = self.prepare_p_o(p, o, lang=lang, check_triples=check_triples)
 
         # If attribute was already set to another value
         if p in self._graph.predicates(self._identifier, unique=True):
