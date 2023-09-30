@@ -8,28 +8,37 @@ from rdflib import RDFS, Namespace
 from rdflib import URIRef as IRI
 from rdflib.term import _serial_number_generator
 
+from rdflib_plus.definitions import RDFS_CLASSES
 from rdflib_plus.models.rdfs_resource import Resource
-from rdflib_plus.models.utils import DEFAULT_IDENTIFIER_PROPERTY
-from rdflib_plus.utils import DEFAULT_NAMESPACE, format_label
+from rdflib_plus.namespaces import DEFAULT_NAMESPACE
+from rdflib_plus.utils import format_label
 from rdflib_plus.utils.types import (
+    ConstraintsType,
     GraphType,
     IdentifierPropertyType,
     IdentifierType,
     LangType,
+    PropertyConstraintsType,
 )
 
-# Define specific custom types
+# Define specific custom type
 SuperclassType = Optional["Class" | IRI | list["Class" | IRI]]
 
 
 class Class(Resource):
     """RDFS Class"""
 
-    # Property that links Class to its parent(s)
-    _parent_property = RDFS.subClassOf
-
     # Class's RDF type
     _type = RDFS.Class
+
+    # Class's property constraints
+    _constraints: PropertyConstraintsType = {
+        **Resource._constraints,
+        **RDFS_CLASSES[_type]["constraints"],
+    }
+
+    # Property that links Class to its parent(s)
+    _parent_property = RDFS.subClassOf
 
     def __init__(
         self,
@@ -41,7 +50,8 @@ class Class(Resource):
         lang: LangType = None,
         check_triples: bool = True,
         bnode: bool = False,
-        identifier_property: IdentifierPropertyType = DEFAULT_IDENTIFIER_PROPERTY,
+        constraints: Optional[ConstraintsType] = None,
+        identifier_property: Optional[IdentifierPropertyType] = None,
     ):
         """Initialize Class.
 
@@ -65,13 +75,28 @@ class Class(Resource):
             bnode (bool, optional):
                 Whether instances of Class should be blank nodes.
                 Defaults to False.
-            identifier_property (bool, optional):
-                Property that links a Class's instance to its identifier.
-                Defaults to DEFAULT_IDENTIFIER_PROPERTY.
+            constraints (Optional[dict[IRI, dict[str, Any]]], optional):
+                Class's specific constraints.
+                Defaults to None.
+            identifier_property (Optional[IRI, dict[str, IRI]], optional):
+                Class's specific identifier property.
+                Defaults to None.
         """
 
         # Set whether instances of Class should be blank nodes
         self.bnode = bnode
+
+        # If Class-specific constraints are specified
+        if constraints is not None:
+            # Add them to the original constraints
+            # Update the class method so that
+            # they can be inherited to sub-classes
+            self.__class__._constraints.update(constraints)
+
+        # If a Class-specific identifier property is specified
+        if identifier_property is not None:
+            # Update it to the new value
+            self._identifier_property = identifier_property
 
         # Initialize parent hierarchy
         path = []
@@ -105,7 +130,7 @@ class Class(Resource):
         self.instance = type(
             f"{self.id_}Instance",
             (Resource,),
-            {"_type": self, "_identifier_property": identifier_property},
+            {"_type": self, "_identifier_property": self._identifier_property},
         )
 
         # If superclass(es) was specified

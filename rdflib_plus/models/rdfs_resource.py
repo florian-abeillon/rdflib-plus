@@ -15,11 +15,11 @@ from rdflib import (
     Namespace,
 )
 from rdflib import URIRef as IRI
-from rdflib.resource import Resource as RdfsResource
+from rdflib.resource import Resource as RdflibResource
 
-from rdflib_plus.constraints import RESOURCE_CONSTRAINTS
-from rdflib_plus.models.utils import DEFAULT_IDENTIFIER_PROPERTY
-from rdflib_plus.utils import DEFAULT_NAMESPACE, legalize_for_iri
+from rdflib_plus.definitions import RDFS_CLASSES
+from rdflib_plus.namespaces import DEFAULT_NAMESPACE
+from rdflib_plus.utils import legalize_for_iri
 from rdflib_plus.utils.types import (
     GraphType,
     IdentifierPropertyType,
@@ -29,18 +29,23 @@ from rdflib_plus.utils.types import (
     ResourceOrIri,
 )
 
+# Define specific custom types
+ObjectType = "Resource" | IRI | Literal | Any
 
-class Resource(RdfsResource):
+
+class Resource(RdflibResource):
     """RDFS Resource"""
-
-    # Property that links Resource to its identifier
-    _identifier_property: IdentifierPropertyType = DEFAULT_IDENTIFIER_PROPERTY
-
-    # Property constraints
-    _property_constraints: PropertyConstraintsType = RESOURCE_CONSTRAINTS
 
     # Resource's RDF type
     _type: ResourceOrIri = RDFS.Resource
+
+    # Property that links Resource to its identifier
+    _identifier_property: IdentifierPropertyType = RDFS_CLASSES[_type][
+        "identifier_property"
+    ]
+
+    # Resource's property constraints
+    _constraints: PropertyConstraintsType = RDFS_CLASSES[_type]["constraints"]
 
     @property
     def iri(self) -> IRI:
@@ -105,9 +110,7 @@ class Resource(RdfsResource):
 
         # Set path and check_triples
         self.path = path if path is not None else [self._type.fragment]
-        self.check_triples = (
-            check_triples and self._property_constraints is not None
-        )
+        self.check_triples = check_triples
 
         # If an IRI is directly specified
         if iri is not None:
@@ -217,7 +220,7 @@ class Resource(RdfsResource):
         # TODO: When different identifier properties are used
         #       with the same type of resources, as two different
         #       resources may have the same fragment.
-        #       HPrepending "self._identifier_property.fragment"
+        #       Prepending "self._identifier_property.fragment"
         #       to the fragment solves the problem, but resources
         #       become harder to fetch, as one needs the resource's
         #       own identifier property to find it.
@@ -270,46 +273,12 @@ class Resource(RdfsResource):
 
         return self._graph_full.value(self._identifier, predicate, any=False)
 
-    def check(
-        self,
-        p: IRI,
-        o: IRI | Literal,
-    ) -> bool:
-        """Check triple that is about to be added to or set in self._graph.
-
-        Args:
-            p (IRI):
-                Predicate of triple.
-            o (IRI | Literal):
-                Object of triple.
-
-        Returns:
-            bool: Whether <s, p, o> is valid.
-        """
-
-        try:
-            constraints = self._property_constraints[p]
-        except KeyError:
-            return False
-
-        return True
-
-        # TODO: To implement
-        # is_valid = all(
-        #     [
-        #         check_constraint(constraint, value, o)
-        #         for constraint, value in constraints.items()
-        #     ]
-        # )
-
-        # return is_valid
-
     def prepare_p_o(
         self,
         p: ResourceOrIri,
         o: ObjectType,
         lang: LangType = None,
-        check_triples: bool = False,
+        check_triple: bool = False,
     ) -> tuple[IRI, IRI | Literal]:
         """Prepare predicate and object, to be added to triplestore.
 
@@ -320,26 +289,51 @@ class Resource(RdfsResource):
                 Object of triple.
             lang (Optional[str], optional):
                 Language of object. Defaults to None.
-            check_triples (bool, optional):
+            check_triple (bool, optional):
                 Whether to check the added triple. Defaults to False.
 
         Returns:
             tuple[IRI, IRI | Literal]: Prepared predicate and object.
         """
 
-        # If p is a Resource, get its IRI
+        if check_triple:
+            # Check that p and o are not None
+            assert p is not None, "Trying to add triple with null predicate."
+            assert o is not None, "Trying to add triple with null object."
+
+        # If p is a Resource
         if isinstance(p, Resource):
+            # Get its IRI
             p = p.iri
 
-        # If o is a Resource, get its IRI
+        if check_triple:
+            # Get constraints of property p
+            try:
+                constraints = self._constraints[p]
+            except KeyError:
+                assert (
+                    False
+                ), f"{self.iri}: Property '{p}' is not valid with this class."
+
+        # If o is a Resource
         if isinstance(o, Resource):
+            # If there is a 'class' constraint
+            if check_triple and "class" in constraints:
+                # TODO: Unsatisfying solution, as it uses the '_type'
+                #       protected attribute, and does not check for
+                #       parent/super-classes.
+                # Check that o is of valid type
+                assert o._type == constraints["class"]
+
+            # Get its IRI
             o = o.iri
+
         # Otherwise, if o is neither a plain IRI nor a Literal
         elif not isinstance(o, (IRI, Literal)):
             # If o is an empty string, raise warning
             if o == "":
                 warnings.warn(
-                    f"{self._identifier}: Empty string is trying to be set or "
+                    f"{self.iri}: Empty string is trying to be set or "
                     f"added using predicate '{p}'"
                 )
 
@@ -348,9 +342,13 @@ class Resource(RdfsResource):
                 lang = self.lang
             o = Literal(o, lang=lang)
 
-        # If required, check that <s, p, o> is a valid triple
-        if self.check_triples or check_triples:
-            self.check(p, o)
+        if check_triple:
+            assert isinstance(o, Literal) and isinstance(
+                o.datatype, constraints["datatype"]
+            ), (
+                f"{self.iri}: Object '{o}' does not have valid datatype "
+                "with Property '{p}'."
+            )
 
         return p, o
 
@@ -359,7 +357,7 @@ class Resource(RdfsResource):
         p: ResourceOrIri,
         o: ObjectType,
         lang: LangType = None,
-        check_triples: bool = False,
+        check_triple: Optional[bool] = None,
     ) -> None:
         """Add triple to self._graph.
 
@@ -370,12 +368,26 @@ class Resource(RdfsResource):
                 Object of triple.
             lang (Optional[str], optional):
                 Language of object. Defaults to None.
-            check_triples (bool, optional):
-                Whether to check the added triple. Defaults to False.
+            check_triple (Optional[bool], optional):
+                Whether to check the added triple. Defaults to None.
         """
 
+        # If check_triple is not specified, use Class's value
+        if check_triple is None:
+            check_triple = self.check_triples
+
         # Prepare predicate and object
-        p, o = self.prepare_p_o(p, o, lang=lang, check_triples=check_triples)
+        p, o = self.prepare_p_o(p, o, lang=lang, check_triple=check_triple)
+
+        if check_triple:
+            # If there is a 'maxCount' constraint of 1
+            # and the value is trying to be added
+            if self._constraints[p].get("maxCount") == 1:
+                # Raise a warning
+                warnings.warn(
+                    f"{self.iri}: Adding value of Property '{p}' with "
+                    "the add() method, instead of setting it with set()."
+                )
 
         # Add object o to Resource, using predicate p
         super().add(p, o)
@@ -386,7 +398,7 @@ class Resource(RdfsResource):
         o: ObjectType,
         lang: LangType = None,
         force: bool = False,
-        check_triples: bool = False,
+        check_triple: Optional[bool] = None,
     ) -> None:
         """Set triple in self._graph.
 
@@ -400,35 +412,45 @@ class Resource(RdfsResource):
             force (bool, optional):
                 Whether to force the setting of triple (eg. if there was
                 one already). Defaults to False.
-            check_triples (bool, optional):
-                Whether to check the added triple. Defaults to False.
+            check_triple (Optional[bool], optional):
+                Whether to check the added triple. Defaults to None.
         """
 
+        # If check_triple is not specified, use Class's value
+        if check_triple is None:
+            check_triple = self.check_triples
+
         # Prepare predicate and object
-        p, o = self.prepare_p_o(p, o, lang=lang, check_triples=check_triples)
+        p, o = self.prepare_p_o(p, o, lang=lang, check_triple=check_triple)
 
-        # If attribute was already set to another value
-        if p in self._graph.predicates(self._identifier, unique=True):
-            # If force, remove previously set value
-            if force:
-                self._graph.remove((self._identifier, p, None))
+        if check_triple:
+            # If attribute was already set to another value
+            if p in self._graph.predicates(self._identifier, unique=True):
+                # If force, remove previously set value
+                if force:
+                    self._graph.remove((self._identifier, p, None))
 
-            else:
-                # If the value is the same, do not do anything
-                value = self.get_attribute(p)
-                if value == o:
-                    return
+                else:
+                    # If the value is the same, do not do anything
+                    value = self.get_attribute(p)
+                    if value == o:
+                        return
 
-                # Otherwise, raise warning
-                warnings.warn(
-                    f"{self._identifier}: Overwriting unique attribute "
-                    f"'{p}' of value '{value}', with value '{o}'."
-                )
+                    # Otherwise, raise warning
+                    warnings.warn(
+                        f"{self.iri}: Overwriting unique attribute "
+                        f"'{p}' of value '{value}', with value '{o}'."
+                    )
 
         # Set attribute o to Resource, using predicate p
         super().set(p, o)
 
-    def add_alt_label(self, alt_label: str, lang: LangType = None) -> None:
+    def add_alt_label(
+        self,
+        alt_label: str,
+        lang: LangType = None,
+        check_triple: Optional[bool] = None,
+    ) -> None:
         """Add a SKOS.altLabel to Resource.
 
         Args:
@@ -436,22 +458,35 @@ class Resource(RdfsResource):
                 Alternative label.
             lang (Optional[str], optional):
                 Language of label. Defaults to None.
+            check_triple (Optional[bool], optional):
+                Whether to check the added triple. Defaults to None.
         """
 
-        alt_label = Literal(alt_label, lang=lang)
+        # If check_triple is not specified, use Class's value
+        if check_triple is None:
+            check_triple = self.check_triples
 
-        # If altLabel to be added is already prefLabel, do nothing
-        if self.get_attribute(SKOS.prefLabel) == alt_label:
-            warnings.warn(
-                f"{self._identifier}: SKOS.altLabel '{str(alt_label)}' is "
-                "already the SKOS.prefLabel. Not adding it to altLabel list."
-            )
-            return
+        if check_triple:
+            # If altLabel to be added is already prefLabel, do nothing
+            if self.get_attribute(SKOS.prefLabel) == alt_label:
+                warnings.warn(
+                    f"{self.iri}: SKOS.altLabel '{str(alt_label)}' is "
+                    "already the SKOS.prefLabel. "
+                    "Not adding it to altLabel list."
+                )
+                return
 
         # Add alt_label to Resource's SKOS.altLabel list
-        self.add(SKOS.altLabel, alt_label)
+        self.add(
+            SKOS.altLabel, alt_label, lang=lang, check_triple=check_triple
+        )
 
-    def set_pref_label(self, pref_label: str, lang: LangType = None) -> None:
+    def set_pref_label(
+        self,
+        pref_label: str,
+        lang: LangType = None,
+        check_triple: Optional[bool] = None,
+    ) -> None:
         """Set Resource's SKOS.prefLabel.
 
         Args:
@@ -459,18 +494,27 @@ class Resource(RdfsResource):
                 Preferred label.
             lang (Optional[str], optional):
                 Language of label. Defaults to None.
+            check_triple (Optional[bool], optional):
+                Whether to check the added triple. Defaults to None.
         """
 
+        # If check_triple is not specified, use Class's value
+        if check_triple is None:
+            check_triple = self.check_triples
+
         # Set pref_label as Resource's SKOS.prefLabel
-        pref_label = Literal(pref_label, lang=lang)
-        self.set(SKOS.prefLabel, pref_label)
+        self.set(
+            SKOS.prefLabel, pref_label, lang=lang, check_triple=check_triple
+        )
 
-        # If pref_label was already added as a SKOS.altLabel
-        if pref_label in self.objects(SKOS.altLabel):
-            warnings.warn(
-                f"{self._identifier}: SKOS.prefLabel '{str(pref_label)}' "
-                "is already a SKOS.altLabel. Removing it from altLabel list."
-            )
+        if check_triple:
+            # If pref_label was already added as a SKOS.altLabel
+            if pref_label in self.objects(SKOS.altLabel):
+                warnings.warn(
+                    f"{self.iri}: SKOS.prefLabel '{str(pref_label)}' "
+                    "is already a SKOS.altLabel. "
+                    "Removing it from altLabel list."
+                )
 
-            # Remove pref_label from SKOS.altLabel list
-            self.remove(SKOS.altLabel, pref_label)
+                # Remove pref_label from SKOS.altLabel list
+                self.remove(SKOS.altLabel, pref_label)

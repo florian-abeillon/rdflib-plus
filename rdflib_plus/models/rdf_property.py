@@ -7,22 +7,35 @@ from inflection import camelize
 from rdflib import OWL, RDF, RDFS, Namespace
 from rdflib import URIRef as IRI
 
+from rdflib_plus.definitions import RDF_PROPERTIES
 from rdflib_plus.models.rdfs_class import Class
+from rdflib_plus.models.rdfs_resource import Resource
 from rdflib_plus.utils import format_label
-from rdflib_plus.utils.types import GraphType, LangType
+from rdflib_plus.utils.types import (
+    ConstraintsType,
+    GraphType,
+    LangType,
+    PropertyConstraintsType,
+)
 
-# Define specific custom types
+# Define specific custom type
 SuperpropertyType = Optional["Property" | IRI | list["Property" | IRI]]
 
 
 class Property(Class):
     """RDF Property"""
 
-    # Property that links Class to its parent(s)
-    _parent_property = RDFS.subPropertyOf
-
     # Property's RDF type
     _type = RDF.Property
+
+    # Class's property constraints
+    _constraints: PropertyConstraintsType = {
+        **Resource._constraints,
+        **RDF_PROPERTIES[_type]["constraints"],
+    }
+
+    # Property that links Property to its parent(s)
+    _parent_property = RDFS.subPropertyOf
 
     def __init__(
         self,
@@ -33,6 +46,7 @@ class Property(Class):
         hierarchical_path: bool = False,
         lang: LangType = None,
         check_triples: bool = True,
+        constraints: Optional[ConstraintsType] = None,
     ):
         """Initialize Property.
 
@@ -54,6 +68,9 @@ class Property(Class):
             check_triples (bool, optional):
                 Whether to check triples that are added or set using Property.
                 Defaults to True.
+            constraints (Optional[dict[IRI, dict[str, Any]]], optional):
+                Class's specific constraints.
+                Defaults to None.
         """
 
         super().__init__(
@@ -64,6 +81,7 @@ class Property(Class):
             hierarchical_path=hierarchical_path,
             lang=lang,
             check_triples=check_triples,
+            constraints=constraints,
         )
 
         # Initialize potential OWL Inverse property

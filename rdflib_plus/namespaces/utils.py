@@ -18,7 +18,7 @@ def create_namespace(
     domain: str = DEFAULT_DOMAIN,
     subdomain: Optional[str] = None,
     authority: Optional[str] = None,
-    path: str = "",
+    path: Optional[str] = None,
     shape: bool = False,
 ) -> Namespace:
     """Build namespace, given the specified IRI parts.
@@ -33,8 +33,8 @@ def create_namespace(
         authority (Optional[str], optional):
             IRI's authority; if specified, overrules domain and subdomain.
             Defaults to None.
-        path (str, optional):
-            IRI's path. Defaults to "".
+        path (Optional[str], optional):
+            IRI's path. Defaults to None.
         shape (bool, optional):
             Whether the namespace corresponds to shapes. Defaults to False.
 
@@ -58,7 +58,11 @@ def create_namespace(
     path = legalize_for_iri(path)
 
     # Build IRI from its parts
-    iri = f"{scheme}://{authority}/{path}"
+    iri = f"{scheme}://{authority}/"
+
+    # If any specified, add path
+    if path is None:
+        iri += f"{path}/"
 
     # Create namespace from IRI
     namespace = Namespace(iri)

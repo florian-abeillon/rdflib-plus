@@ -1,29 +1,63 @@
-"""Default constants and useful functions"""
+"""Functions to define a custom Resource"""
 
-from rdflib import DCTERMS, Namespace
+from rdflib import Namespace
 
 from rdflib_plus.models.rdf_property import Property
 from rdflib_plus.models.rdfs_class import Class
-
-# Default property to link a Resource to its identifier
-DEFAULT_IDENTIFIER_PROPERTY = DCTERMS.identifier
+from rdflib_plus.models.rdfs_resource import Resource
 
 
 def define_resource(
-    name: str, namespace: Namespace, is_property: bool = False
-):
-    """Dynamically define a new resource as a class.
+    name: str, namespace: Namespace, parent_class: type = Resource, **kwargs
+) -> Resource:
+    """Dynamically define a new Resource as a class.
 
     Args:
         name (str):
-            Name of the new resource.
+            Name of the new Resource.
         namespace (Namespace):
-            Namespace the resource belongs to.
-        is_property (bool, optional):
-            Whether resource is a Property (or a mere Class).
-            Defaults to False
+            Namespace the Resource belongs to.
+
+    Returns:
+        Resource: Created Resource.
     """
 
-    super_class = Property if is_property else Class
+    # Get Resource type
     type_iri = getattr(namespace, name)
-    return type(name, (super_class,), {"_type": type_iri})
+
+    # Create Resource
+    resource = type(name, (parent_class,), {"_type": type_iri, **kwargs})
+
+    return resource
+
+
+def define_class(name: str, namespace: Namespace, **kwargs) -> Class:
+    """Dynamically define a new Class.
+
+    Args:
+        name (str):
+            Name of the new Class.
+        namespace (Namespace):
+            Namespace the Class belongs to.
+
+    Returns:
+        Class: Created Class.
+    """
+
+    return define_resource(name, namespace, Class, **kwargs)
+
+
+def define_property(name: str, namespace: Namespace, **kwargs) -> Property:
+    """Dynamically define a new Property.
+
+    Args:
+        name (str):
+            Name of the new Property.
+        namespace (Namespace):
+            Namespace the Property belongs to.
+
+    Returns:
+        Property: Created Property.
+    """
+
+    return define_resource(name, namespace, Property, **kwargs)

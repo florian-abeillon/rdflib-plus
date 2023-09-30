@@ -1,0 +1,20 @@
+
+rdfs:Resource:
+
+  identifier_property: dcterms:identifier
+
+  properties:
+    - dcterms:identifier
+    - rdf:type
+    - skos:prefLabel
+    - skos:altLabel
+
+rdfs:Class:
+
+  properties:
+    - rdfs:subClassOf
+
+rdf:Property:
+
+  properties:
+    - rdfs:subPropertyOf

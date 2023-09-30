@@ -1,0 +1,35 @@
+
+dcterms:identifier:
+
+  constraints:
+    datatype: 
+      - xsd:integer
+      - xsd:string
+    minCount: 1
+
+rdf:type:
+
+  constraints:
+    class: rdfs:Class
+    minCount: 1
+
+skos:prefLabel:
+
+  constraints:
+    datatype: xsd:string
+    maxCount: 1
+
+skos:altLabel:
+
+  constraints:
+    datatype: xsd:string
+
+rdfs:subClassOf:
+
+  constraints:
+    class: rdfs:Class
+
+rdfs:subPropertyOf:
+
+  constraints:
+    class: rdf:Property
