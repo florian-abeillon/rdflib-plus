@@ -1,4 +1,4 @@
-"""RDFS Resource class"""
+"""RDFS Resource constructor"""
 
 import warnings
 from typing import Any, Optional
@@ -34,7 +34,7 @@ ObjectType = "Resource" | IRI | Literal | Any
 
 
 class Resource(RdflibResource):
-    """RDFS Resource"""
+    """RDFS Resource constructor"""
 
     # Resource's RDF type
     _type: ResourceOrIri = RDFS.Resource
@@ -46,6 +46,23 @@ class Resource(RdflibResource):
 
     # Resource's property constraints
     _constraints: PropertyConstraintsType = RDFS_CLASSES[_type]["constraints"]
+
+    @classmethod
+    def update_constraints(
+        cls, constraints: PropertyConstraintsType
+    ) -> PropertyConstraintsType:
+        """Combine Resource's child class's constraints with Resource's.
+           Not to be used within the 'Resource' constructor.
+
+        Args:
+            constraints (dict[IRI, dict[str, Any]]):
+                Constraints specific to child class.
+
+        Returns:
+            PropertyConstraintsType: Resource constraints, updated with
+                                     child class's specific constraints.
+        """
+        return {**cls._constraints, **constraints}
 
     @property
     def iri(self) -> IRI:
@@ -156,9 +173,17 @@ class Resource(RdflibResource):
                 resource = Resource(graph, iri=iri)
                 resource.add(DCTERMS.source, IRI(namespace))
 
-            # If ConjunctiveGraph, get specified subgraph
+            # Get specified subgraph
             if isinstance(graph, ConjunctiveGraph):
                 graph = graph.get_context(namespace)
+            else:
+                # If graph does not support subgraphs,
+                # raise a warning
+                warnings.warn(
+                    f"{iri}: Namespace '{namespace}' provided, but specified "
+                    "graph does not support subgraphs "
+                    "(use rdflib.ConjunctiveGraph instead of rdflib.Graph)."
+                )
 
         # Create Resource in appropriate graph
         super().__init__(graph, iri)
@@ -317,13 +342,13 @@ class Resource(RdflibResource):
 
         # If o is a Resource
         if isinstance(o, Resource):
-            # If there is a 'class' constraint
-            if check_triple and "class" in constraints:
-                # TODO: Unsatisfying solution, as it uses the '_type'
-                #       protected attribute, and does not check for
-                #       parent/super-classes.
-                # Check that o is of valid type
-                assert o._type == constraints["class"]
+            # # If there is a 'class' constraint
+            # if check_triple and "class" in constraints:
+            #     # TODO: Unsatisfying solution, as it uses the '_type'
+            #     #       protected attribute, and does not check for
+            #     #       parent/super-classes.
+            #     # Check that o is of valid type
+            #     assert o._type == constraints["class"]
 
             # Get its IRI
             o = o.iri

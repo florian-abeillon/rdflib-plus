@@ -1,4 +1,4 @@
-"""OWL Ontology class"""
+"""OWL Ontology constructor"""
 
 from typing import Optional
 
@@ -16,7 +16,7 @@ from rdflib_plus.utils.types import (
 
 
 class Ontology(Resource):
-    """OWL Ontology"""
+    """OWL Ontology constructor"""
 
     # RDFS label of Ontology
     _identifier_property: IdentifierPropertyType = RDFS.label

@@ -1,11 +1,11 @@
-"""OWL resources classes"""
+"""OWL resources constructors"""
 
 from rdflib import OWL
 
-from rdflib_plus.models.utils import define_property
+from rdflib_plus.models.utils import define_class
 
-# Define OWL Property classes
-FunctionalProperty = define_property("FunctionalProperty", OWL)
-InverseFunctionalProperty = define_property("InverseFunctionalProperty", OWL)
-SymmetricProperty = define_property("SymmetricProperty", OWL)
-TransitiveProperty = define_property("TransitiveProperty", OWL)
+# Define OWL Property constructors
+FunctionalProperty = define_class("FunctionalProperty", OWL)
+InverseFunctionalProperty = define_class("InverseFunctionalProperty", OWL)
+SymmetricProperty = define_class("SymmetricProperty", OWL)
+TransitiveProperty = define_class("TransitiveProperty", OWL)

@@ -1,5 +1,6 @@
-"""RDFS Class class"""
+"""RDFS Class constructor"""
 
+import warnings
 from typing import Optional
 from urllib.parse import urldefrag
 
@@ -19,34 +20,35 @@ from rdflib_plus.utils.types import (
     IdentifierType,
     LangType,
     PropertyConstraintsType,
+    PropertyOrIri,
+    ResourceOrIri,
 )
 
 # Define specific custom type
-SuperclassType = Optional["Class" | IRI | list["Class" | IRI]]
+SuperClassType = "Class" | IRI | list["Class" | IRI]
 
 
 class Class(Resource):
-    """RDFS Class"""
+    """RDFS Class constructor"""
 
     # Class's RDF type
-    _type = RDFS.Class
-
-    # Class's property constraints
-    _constraints: PropertyConstraintsType = {
-        **RdfsResouResourcerce._constraints,
-        **RDFS_CLASSES[_type]["constraints"],
-    }
+    _type: ResourceOrIri = RDFS.Class
 
     # Property that links Class to its parent(s)
-    _parent_property = RDFS.subClassOf
+    _parent_property: PropertyOrIri = RDFS.subClassOf
+
+    # Class's property constraints
+    _constraints: PropertyConstraintsType = Resource.update_constraints(
+        RDFS_CLASSES[_type]["constraints"]
+    )
 
     def __init__(
         self,
         graph: GraphType,
         label: str,
         namespace: Optional[Namespace] = None,
-        super_class: SuperclassType = None,
-        hierarchical_path: bool = False,
+        super_class: Optional[SuperClassType] = None,
+        hierarchical_path: bool = True,
         lang: LangType = None,
         check_triples: bool = True,
         bnode: bool = False,
@@ -66,7 +68,7 @@ class Class(Resource):
                 Class's super-class. Defaults to None.
             hierarchical_path (bool, optional):
                 Whether to include Class's parent hierarchy in its path.
-                Defaults to False.
+                Defaults to True.
             lang (Optional[str], optional):
                 Class's language. Defaults to None.
             check_triples (bool, optional):
@@ -85,13 +87,6 @@ class Class(Resource):
 
         # Set whether instances of Class should be blank nodes
         self.bnode = bnode
-
-        # If Class-specific constraints are specified
-        if constraints is not None:
-            # Add them to the original constraints
-            # Update the class method so that
-            # they can be inherited to sub-classes
-            self.__class__._constraints.update(constraints)
 
         # If a Class-specific identifier property is specified
         if identifier_property is not None:
@@ -126,23 +121,67 @@ class Class(Resource):
             check_triples=check_triples,
         )
 
-        # Create class to create Class's instances
-        self.instance = type(
-            f"{self.id_}Instance",
-            (Resource,),
-            {"_type": self, "_identifier_property": self._identifier_property},
+        # Initialize instance constraints
+        constraints_instance = {}
+
+        # If class-specific constraints and at least one super-class
+        # are specified
+        if constraints is not None and super_class is not None:
+            # Initialize dictionary to collect super-classes' instance
+            # constraints
+            super_class_constraints = {}
+
+            # For every super-class
+            for class_ in super_class:
+                # Overlook IRI super-classes as they do not include constraints
+                if not isinstance(class_, Class):
+                    continue
+
+                # For every key-value pair of current super-class
+                for constraint, value in class_.items():
+                    # If current super-class has the same constraint as another
+                    # super-class (and the same value), and this constraint is
+                    # not overruled in class-specific constraints
+                    if (
+                        constraint in super_class_constraints
+                        and constraint not in constraints
+                        and value != super_class_constraints[constraint]
+                    ):
+                        # Raise a warning
+                        warnings.warn(
+                            f"Constraint '{constraint}' has conflicting values"
+                            f" in at least two super-classes of '{self.iri}'. "
+                            "Please harmonize the constraint values, or "
+                            "overrule it with class-specific constraint value."
+                        )
+
+                # Add current super-class's constraints
+                super_class_constraints |= class_.constraints_instance
+
+            # Update super-class's constraints with class-specific constraints
+            constraints_instance = {
+                **super_class_constraints,
+                **constraints,
+            }
+
+        # Update Resource's constraints with class-specific's
+        self.constraints_instance = Resource.update_constraints(
+            constraints_instance
         )
+
+        # Create constructor to create Class's instances
+        self.instance = self.build_instance_constructor()
 
         # If superclass(es) was specified
         if super_class is not None:
             # For every superclass
-            for super_class_iri in super_class:
+            for class_ in super_class:
                 # If necessary, get super_class's IRI
-                if isinstance(super_class_iri, Class):
-                    super_class_iri = super_class_iri.iri
+                if isinstance(class_, Class):
+                    class_ = class_.iri
 
                 # Add hierarchical relation in the graph
-                self.add(self._parent_property, super_class_iri)
+                self.add(self._parent_property, class_)
 
     def build_path(self, identifier: str) -> str:
         """Add Resource's identifier to IRI path.
@@ -178,17 +217,35 @@ class Class(Resource):
 
         return camelize(format_label(identifier))
 
+    def build_instance_constructor(self) -> type:
+        """Build Class's instance constructor.
+
+        Returns:
+            type: Class's instance constructor.
+        """
+
+        return type(
+            f"{self.id_}Instance",
+            (Resource,),
+            {
+                "_type": self,
+                "_identifier_property": self._identifier_property,
+                "_constraints": self.constraints_instance,
+            },
+        )
+
     def __call__(
         self,
         graph: Optional[GraphType] = None,
         identifier: Optional[IdentifierType] = None,
         label: Optional[str] = None,
         lang: LangType = None,
+        check_triples: Optional[bool] = None,
     ) -> Resource:
         """Create instance of Class.
 
         Args:
-            graph (Optional[Graph | ConjunctiveGraph]):
+            graph (Optional[Graph | ConjunctiveGraph], optional):
                 Graph to search or create instance into. Defaults to None.
             identifier (Optional[str | int], optional):
                 Instance's identifier. Defaults to None.
@@ -196,6 +253,9 @@ class Class(Resource):
                 Instance's label. Defaults to None.
             lang (Optional[str], optional):
                 Instance's language. Defaults to None.
+            check_triples (Optional[bool], optional):
+                Whether to check triples that are added or set using Resource.
+                Defaults to None.
 
         Returns:
             Resource: Instance of Class.
@@ -205,10 +265,21 @@ class Class(Resource):
         if graph is None:
             graph = self._graph
 
-        # If self is an instance of a blank nodes class
+        # If check_triples was not specified, use Class's one
+        if check_triples is None:
+            check_triples = self.check_triples
+
+        # If Class's instances should blank nodes
         if self.bnode:
             # Make sure no identifier nor label was given
-            assert identifier is None and label is None
+            assert identifier is None, (
+                f"Trying to create instance of '{self.iri}' as a blank node, "
+                f"but the identifier provided ('{identifier}') is not None."
+            )
+            assert label is None, (
+                f"Trying to create instance of '{self.iri}' as a blank node, "
+                f"but the label provided ('{label}') is not None."
+            )
 
             # Generate blank node identifier
             identifier = _serial_number_generator()()
@@ -218,6 +289,7 @@ class Class(Resource):
             graph,
             identifier=identifier,
             label=label,
+            path=self.path,
             lang=lang,
         )
 

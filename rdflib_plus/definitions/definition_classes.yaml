@@ -2,7 +2,6 @@
 rdfs:Resource:
 
   identifier_property: dcterms:identifier
-
   properties:
     - dcterms:identifier
     - rdf:type
@@ -11,16 +10,22 @@ rdfs:Resource:
 
 rdfs:Class:
 
+  # TODO: Add in README
+  # Does not necessarily represent actual direct super_class
+  # relationship; is rather used to inherit the constraints.
+  super_class: rdf:Resource
   properties:
     - rdfs:subClassOf
 
 rdf:Property:
 
+  super_class: rdf:Resource
   properties:
     - rdfs:subPropertyOf
 
 owl:Ontology:
 
+  super_class: rdf:Resource
   properties:
     - rdfs:comment
     - owl:versionInfo

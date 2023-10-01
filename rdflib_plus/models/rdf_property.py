@@ -1,4 +1,4 @@
-"""RDF Property class"""
+"""RDF Property constructor"""
 
 import re
 from typing import Optional
@@ -16,33 +16,34 @@ from rdflib_plus.utils.types import (
     GraphType,
     LangType,
     PropertyConstraintsType,
+    PropertyOrIri,
+    ResourceOrIri,
 )
 
 # Define specific custom type
-SuperpropertyType = Optional["Property" | IRI | list["Property" | IRI]]
+SuperPropertyType = "Property" | IRI | list["Property" | IRI]
 
 
 class Property(Class):
-    """RDF Property"""
+    """RDF Property constructor"""
 
     # Property's RDF type
-    _type = RDF.Property
-
-    # Class's property constraints
-    _constraints: PropertyConstraintsType = {
-        **Resource._constraints,
-        **RDF_PROPERTIES[_type]["constraints"],
-    }
+    _type: ResourceOrIri = RDF.Property
 
     # Property that links Property to its parent(s)
-    _parent_property = RDFS.subPropertyOf
+    _parent_property: PropertyOrIri = RDFS.subPropertyOf
+
+    # Class's property constraints
+    _constraints: PropertyConstraintsType = Resource.update_constraints(
+        RDF_PROPERTIES[_type]["constraints"]
+    )
 
     def __init__(
         self,
         graph: GraphType,
         label: str,
         namespace: Optional[Namespace] = None,
-        super_property: SuperpropertyType = None,
+        super_property: Optional[SuperPropertyType] = None,
         hierarchical_path: bool = False,
         lang: LangType = None,
         check_triples: bool = True,

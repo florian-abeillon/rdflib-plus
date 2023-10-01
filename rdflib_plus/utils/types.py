@@ -11,4 +11,5 @@ IdentifierType = str | int
 IdentifierPropertyType = IRI | dict[str, IRI]
 LangType = Optional[str]
 PropertyConstraintsType = dict[IRI, dict[str, Any]]
+PropertyOrIri = "Property" | IRI
 ResourceOrIri = "Resource" | IRI
