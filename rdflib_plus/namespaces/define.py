@@ -2,7 +2,8 @@
 
 from rdflib import DCTERMS, OWL, RDF, RDFS, SKOS, XSD
 
-from rdflib_plus.namespaces.utils import create_namespace
+from rdflib_plus.config import DEFAULT_PREFIX
+from rdflib_plus.namespaces.build import create_namespace
 
 # Define default namespaces
 DEFAULT_NAMESPACE = create_namespace()
@@ -10,7 +11,7 @@ SHAPES_NAMESPACE = create_namespace(shape=True)
 
 # Define namespaces' prefixes
 NAMESPACE_TO_PREFIX = {
-    DEFAULT_NAMESPACE: "",
+    DEFAULT_NAMESPACE: DEFAULT_PREFIX,
     DCTERMS: "dcterms",
     OWL: "owl",
     RDF: "rdf",

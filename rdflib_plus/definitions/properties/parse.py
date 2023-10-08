@@ -25,6 +25,37 @@ def parse_property_constraints(
     # Initialize parsed constraints
     constraints_parsed = {}
 
+    # TODO: Necessary for SHACL graph construction?
+    # def parse_add_constraint(constraint: str, value: str | int) -> None:
+    #     """Parse and add constraint to constraints_parsed.
+
+    #     Args:
+    #         constraint (str):
+    #             Name of the constraint to parse and add.
+    #         value (str | int):
+    #             Value of the constraint.
+    #     """
+
+    #     # Get its associated process to apply to value
+    #     process = CONSTRAINTS_OBJECTS[constraint]
+
+    #     # Add it to the parsed constraints dictionary
+    #     constraints_parsed[constraint] = (
+    #         process(value) if process is not None else value
+    #     )
+
+    # # For every constraint
+    # for constraint, value in constraints.items():
+    #     # If constraint is 'unique'
+    #     # Translate it into 'minCount'/'maxCount'
+    #     if constraint == "unique" and value is True:
+    #         parse_add_constraint("minCount", 1)
+    #         parse_add_constraint("maxCount", 1)
+
+    #     # Otherwise, parse and add constraint
+    #     else:
+    #         parse_add_constraint(constraint, value)
+
     # For every constraint
     for constraint, value in constraints.items():
         # Get its associated process to apply to value

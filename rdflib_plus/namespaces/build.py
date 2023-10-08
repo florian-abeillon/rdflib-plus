@@ -61,7 +61,7 @@ def create_namespace(
     iri = f"{scheme}://{authority}/"
 
     # If any specified, add path
-    if path is None:
+    if path is not None:
         iri += f"{path}/"
 
     # Create namespace from IRI

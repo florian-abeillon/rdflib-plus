@@ -1,10 +1,10 @@
-"""Functions to define a custom Resource"""
+"""Functions to define custom Resources"""
 
 from rdflib import Namespace
 
-from rdflib_plus.models.rdf_property import Property
-from rdflib_plus.models.rdfs_class import Class
-from rdflib_plus.models.rdfs_resource import Resource
+from rdflib_plus.models.rdf.rdf_property import Property
+from rdflib_plus.models.rdf.rdfs_class import Class
+from rdflib_plus.models.rdf.rdfs_resource import Resource
 
 
 def define_resource(

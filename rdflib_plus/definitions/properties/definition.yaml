@@ -17,7 +17,7 @@ skos:prefLabel:
 
   constraints:
     datatype: xsd:string
-    maxCount: 1
+    maxCount: 1         # TODO: maxCount by language
 
 skos:altLabel:
 

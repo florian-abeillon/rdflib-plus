@@ -1,23 +1,36 @@
 """Import useful classes"""
 
-from rdflib_plus.models.owl_ontology import Ontology
-from rdflib_plus.models.owl_properties import (
+from rdflib_plus.models.custom import NaryProperty, PropertyWithAttributes
+from rdflib_plus.models.owl import (
     FunctionalProperty,
     InverseFunctionalProperty,
+    Ontology,
     SymmetricProperty,
     TransitiveProperty,
 )
-from rdflib_plus.models.rdf_property import Property
-from rdflib_plus.models.rdfs_class import Class
-from rdflib_plus.models.rdfs_resource import Resource
+from rdflib_plus.models.rdf import (
+    Alt,
+    Bag,
+    Class,
+    List,
+    Property,
+    Resource,
+    Seq,
+)
 
 __all__ = [
-    "Property",
+    "Alt",
+    "Bag",
     "Class",
-    "Resource",
-    "Ontology",
     "FunctionalProperty",
     "InverseFunctionalProperty",
+    "List",
+    "NaryProperty",
+    "Ontology",
+    "Property",
+    "PropertyWithAttributes",
+    "Resource",
+    "Seq",
     "SymmetricProperty",
     "TransitiveProperty",
 ]

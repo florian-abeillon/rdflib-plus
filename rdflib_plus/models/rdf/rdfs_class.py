@@ -7,21 +7,24 @@ from urllib.parse import urldefrag
 from inflection import camelize
 from rdflib import RDFS, Namespace
 from rdflib import URIRef as IRI
-from rdflib.term import _serial_number_generator
 
+from rdflib_plus.config import (
+    DEFAULT_CHECK_TRIPLES,
+    DEFAULT_HIERARCHICAL_PATH,
+    DEFAULT_LANGUAGE,
+)
 from rdflib_plus.definitions import RDFS_CLASSES
-from rdflib_plus.models.rdfs_resource import Resource
+from rdflib_plus.models.rdf.rdfs_resource import Resource
 from rdflib_plus.namespaces import DEFAULT_NAMESPACE
-from rdflib_plus.utils import format_label
-from rdflib_plus.utils.types import (
+from rdflib_plus.utils import (
     ConstraintsType,
     GraphType,
     IdentifierPropertyType,
     IdentifierType,
     LangType,
-    PropertyConstraintsType,
     PropertyOrIri,
     ResourceOrIri,
+    format_label,
 )
 
 # Define specific custom type
@@ -38,7 +41,7 @@ class Class(Resource):
     _parent_property: PropertyOrIri = RDFS.subClassOf
 
     # Class's property constraints
-    _constraints: PropertyConstraintsType = Resource.update_constraints(
+    _constraints: ConstraintsType = Resource.update_constraints(
         RDFS_CLASSES[_type]["constraints"]
     )
 
@@ -48,17 +51,17 @@ class Class(Resource):
         label: str,
         namespace: Optional[Namespace] = None,
         super_class: Optional[SuperClassType] = None,
-        hierarchical_path: bool = True,
-        lang: LangType = None,
-        check_triples: bool = True,
+        hierarchical_path: bool = DEFAULT_HIERARCHICAL_PATH,
+        lang: LangType = DEFAULT_LANGUAGE,
+        check_triples: bool = DEFAULT_CHECK_TRIPLES,
         bnode: bool = False,
         constraints: Optional[ConstraintsType] = None,
         identifier_property: Optional[IdentifierPropertyType] = None,
-    ):
+    ) -> None:
         """Initialize Class.
 
         Args:
-            graph (Graph | ConjunctiveGraph):
+            graph (Graph | MultiGraph):
                 Graph to search or create Class into.
             label (str):
                 Class's label.
@@ -68,12 +71,12 @@ class Class(Resource):
                 Class's super-class. Defaults to None.
             hierarchical_path (bool, optional):
                 Whether to include Class's parent hierarchy in its path.
-                Defaults to True.
+                Defaults to DEFAULT_HIERARCHICAL_PATH.
             lang (Optional[str], optional):
-                Class's language. Defaults to None.
+                Class's language. Defaults to DEFAULT_LANGUAGE.
             check_triples (bool, optional):
                 Whether to check triples that are added or set using Class.
-                Defaults to True.
+                Defaults to DEFAULT_CHECK_TRIPLES.
             bnode (bool, optional):
                 Whether instances of Class should be blank nodes.
                 Defaults to False.
@@ -120,6 +123,8 @@ class Class(Resource):
             lang=lang,
             check_triples=check_triples,
         )
+
+        # TODO: Put into methods
 
         # Initialize instance constraints
         constraints_instance = {}
@@ -170,20 +175,19 @@ class Class(Resource):
         )
 
         # Create constructor to create Class's instances
-        self.instance = self.build_instance_constructor()
+        self.instance = self._build_instance_constructor()
 
         # If superclass(es) was specified
         if super_class is not None:
             # For every superclass
             for class_ in super_class:
-                # If necessary, get super_class's IRI
-                if isinstance(class_, Class):
-                    class_ = class_.iri
+                # Get super_class's IRI
+                class_iri = self._format_resource(class_)
 
                 # Add hierarchical relation in the graph
-                self.add(self._parent_property, class_)
+                self.add(self._parent_property, class_iri)
 
-    def build_path(self, identifier: str) -> str:
+    def _build_path(self, identifier: str) -> str:
         """Add Resource's identifier to IRI path.
 
         Args:
@@ -204,7 +208,7 @@ class Class(Resource):
         return path
 
     @staticmethod
-    def format_identifier(identifier: str) -> str:
+    def _format_identifier(identifier: str) -> str:
         """Format Class's identifier (in PascalCase).
 
         Args:
@@ -217,7 +221,7 @@ class Class(Resource):
 
         return camelize(format_label(identifier))
 
-    def build_instance_constructor(self) -> type:
+    def _build_instance_constructor(self) -> type:
         """Build Class's instance constructor.
 
         Returns:
@@ -239,20 +243,20 @@ class Class(Resource):
         graph: Optional[GraphType] = None,
         identifier: Optional[IdentifierType] = None,
         label: Optional[str] = None,
-        lang: LangType = None,
+        lang: LangType = DEFAULT_LANGUAGE,
         check_triples: Optional[bool] = None,
     ) -> Resource:
         """Create instance of Class.
 
         Args:
-            graph (Optional[Graph | ConjunctiveGraph], optional):
+            graph (Optional[Graph | MultiGraph], optional):
                 Graph to search or create instance into. Defaults to None.
             identifier (Optional[str | int], optional):
                 Instance's identifier. Defaults to None.
             label (Optional[str], optional):
                 Instance's label. Defaults to None.
             lang (Optional[str], optional):
-                Instance's language. Defaults to None.
+                Instance's language. Defaults to DEFAULT_LANGUAGE.
             check_triples (Optional[bool], optional):
                 Whether to check triples that are added or set using Resource.
                 Defaults to None.
@@ -281,13 +285,9 @@ class Class(Resource):
                 f"but the label provided ('{label}') is not None."
             )
 
-            # Generate blank node identifier
-            identifier = _serial_number_generator()()
-
         # Create instance of Class
         instance = self.instance(
             graph,
-            identifier=identifier,
             label=label,
             path=self.path,
             lang=lang,
@@ -318,7 +318,7 @@ class Class(Resource):
             namespace, fragment = urldefrag(fragment)
 
         # Format fragment, and create IRI from it
-        fragment = cls.format_identifier(fragment)
+        fragment = cls._format_identifier(fragment)
         iri = namespace[fragment]
 
         return iri

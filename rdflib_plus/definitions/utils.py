@@ -6,7 +6,7 @@ from langcodes import standardize_tag
 from rdflib import URIRef as IRI
 
 from rdflib_plus.namespaces import PREFIX_TO_NAMESPACE
-from rdflib_plus.utils.load import parse_yaml
+from rdflib_plus.utils import parse_yaml
 
 
 def copy_key_value_if_exists(

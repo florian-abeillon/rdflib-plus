@@ -13,19 +13,32 @@ rdfs:Class:
   # TODO: Add in README
   # Does not necessarily represent actual direct super_class
   # relationship; is rather used to inherit the constraints.
-  super_class: rdf:Resource
+  super_class: rdfs:Resource
   properties:
     - rdfs:subClassOf
 
 rdf:Property:
 
-  super_class: rdf:Resource
+  super_class: rdfs:Resource
   properties:
     - rdfs:subPropertyOf
 
+rdfs:Container:
+
+  super_class: rdfs:Resource
+  properties:
+    - rdf:_*      # TODO: To parse
+
+rdf:List:
+
+  super_class: rdfs:Resource
+  properties:
+    - rdf:first
+    - rdf:rest
+
 owl:Ontology:
 
-  super_class: rdf:Resource
+  super_class: rdfs:Resource
   properties:
     - rdfs:comment
     - owl:versionInfo

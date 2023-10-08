@@ -1,4 +1,4 @@
-"""Functions for formatting strings"""
+"""Functions to format labels and identifiers"""
 
 import re
 import urllib.parse

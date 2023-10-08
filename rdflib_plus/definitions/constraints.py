@@ -7,4 +7,5 @@ CONSTRAINTS_OBJECTS = {
     "datatype": parse_prefixed_iri,
     "minCount": None,
     "maxCount": None,
+    # "unique": None,
 }

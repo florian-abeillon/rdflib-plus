@@ -1,15 +1,16 @@
 """Useful custom types"""
 
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
-from rdflib import ConjunctiveGraph, Graph
+from rdflib import ConjunctiveGraph as MultiGraph
+from rdflib import Graph
 from rdflib import URIRef as IRI
 
 ConstraintsType = dict[IRI, dict[str, Any]]
-GraphType = Graph | ConjunctiveGraph
+GraphType = Graph | MultiGraph
 IdentifierType = str | int
 IdentifierPropertyType = IRI | dict[str, IRI]
 LangType = Optional[str]
-PropertyConstraintsType = dict[IRI, dict[str, Any]]
 PropertyOrIri = "Property" | IRI
 ResourceOrIri = "Resource" | IRI
+ObjectType = ResourceOrIri | Literal | Any
