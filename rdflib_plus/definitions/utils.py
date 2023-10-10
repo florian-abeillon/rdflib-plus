@@ -2,7 +2,6 @@
 
 from typing import Callable, Optional
 
-from langcodes import standardize_tag
 from rdflib import URIRef as IRI
 
 from rdflib_plus.namespaces import parse_prefixed_iri
@@ -39,32 +38,6 @@ def copy_key_value_if_exists(
     dict_to[key] = process(value) if process is not None else value
 
     return None
-
-
-def parse_identifier_property(
-    identifier_property: str | dict[str, str]
-) -> IRI | dict[str, IRI]:
-    """Parse classes' specified identifier property.
-
-    Args:
-        identifier_property (str | dict[str, str]):
-            Property (or dictionary of language code to property) that links
-            Class to its identifier.
-
-    Returns:
-        IRI | dict[str, IRI]: Parsed property or dictionary of properties.
-    """
-
-    # If identifier_property is a single property, parse it as IRI
-    if isinstance(identifier_property, str):
-        return parse_prefixed_iri(identifier_property)
-
-    # Otherwise, format each language code
-    # and parse their respective values as IRI
-    return {
-        standardize_tag(lang): parse_prefixed_iri(property_)
-        for lang, property_ in identifier_property.items()
-    }
 
 
 def parse_definition_file(

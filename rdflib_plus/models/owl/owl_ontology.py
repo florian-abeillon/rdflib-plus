@@ -6,13 +6,9 @@ from rdflib import OWL, RDFS, Namespace
 
 from rdflib_plus.config import DEFAULT_CHECK_TRIPLES, DEFAULT_LANGUAGE
 from rdflib_plus.definitions import RDFS_CLASSES
+from rdflib_plus.models.rdf.rdf_property import PropertyOrIri
 from rdflib_plus.models.rdf.rdfs_resource import Resource, ResourceOrIri
-from rdflib_plus.models.utils.types import (
-    ConstraintsType,
-    GraphType,
-    IdentifierPropertyType,
-    LangType,
-)
+from rdflib_plus.models.utils.types import ConstraintsType, GraphType, LangType
 
 
 class Ontology(Resource):
@@ -22,7 +18,7 @@ class Ontology(Resource):
     _type: ResourceOrIri = OWL.Ontology
 
     # RDFS label of Ontology
-    _identifier_property: IdentifierPropertyType = RDFS.label
+    _identifier_property: PropertyOrIri = RDFS.label
 
     # Property constraints
     _constraints: ConstraintsType = Resource.update_constraints(

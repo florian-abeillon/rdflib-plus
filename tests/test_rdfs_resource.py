@@ -16,7 +16,7 @@ from rdflib_plus import Resource
         ("identifier", IRI("http://default.example.com/Resource#identifier")),
     ],
 )
-def test_create_with_identifier(identifier: str, iri: IRI) -> None:
+def test_init_with_identifier(identifier: str, iri: IRI):
     """Test Resource object creation with identifier."""
 
     # Initialize graph
@@ -66,7 +66,7 @@ def test_create_with_identifier(identifier: str, iri: IRI) -> None:
         ),
     ],
 )
-def test_create_with_label(label: str, iri: IRI) -> None:
+def test_init_with_label(label: str, iri: IRI):
     """Test Resource object creation with label."""
 
     # Initialize graph
@@ -123,7 +123,7 @@ def test_create_with_label(label: str, iri: IRI) -> None:
         ),
     ],
 )
-def test_create_with_label_and_lang(label: str, lang: str, iri: IRI) -> None:
+def test_init_with_label_and_lang(label: str, lang: str, iri: IRI):
     """Test Resource object creation with label and language."""
 
     # Initialize graph
@@ -171,9 +171,7 @@ def test_create_with_label_and_lang(label: str, lang: str, iri: IRI) -> None:
         (1, "label", IRI("http://default.example.com/Resource#1")),
     ],
 )
-def test_create_with_identifier_and_label(
-    identifier: str, label: str, iri: IRI
-) -> None:
+def test_init_with_identifier_and_label(identifier: str, label: str, iri: IRI):
     """Test Resource object creation with identifier and label."""
 
     # Initialize graph
@@ -217,7 +215,7 @@ def test_create_with_identifier_and_label(
         IRI("http://default.example.com/Resource#label"),
     ],
 )
-def test_create_with_iri(iri: IRI) -> None:
+def test_init_with_iri(iri: IRI):
     """Test Resource object creation with iri."""
 
     # Initialize graph
@@ -236,7 +234,7 @@ def test_create_with_iri(iri: IRI) -> None:
     assert len(graph) == 0
 
 
-def test_create_blank_node() -> None:
+def test_init_blank_node():
     """Test blank node creation."""
 
     # Initialize graph
@@ -278,7 +276,7 @@ def test_create_blank_node() -> None:
         ),
     ],
 )
-def test_create_with_path(identifier: str, path: list[str], iri: IRI) -> None:
+def test_init_with_path(identifier: str, path: list[str], iri: IRI):
     """Test Resource object creation with a path."""
 
     # Initialize graph
@@ -308,3 +306,43 @@ def test_create_with_path(identifier: str, path: list[str], iri: IRI) -> None:
     assert len(graph) == len(triples)
     for triple in triples:
         assert triple in graph
+
+
+def test_init_with_namespace():
+    """Test Resource object creation within a namespace."""
+    pass
+
+
+def test_init_with_check_triples():
+    """Test Resource object creation with a systematic check of triples."""
+    pass
+
+
+def test_get_attribute():
+    """Test Resource's get_attribute() method."""
+    pass
+
+
+def test_add():
+    """Test Resource's add() method."""
+    pass
+
+
+def test_set():
+    """Test Resource's set() method."""
+    pass
+
+
+def test_replace():
+    """Test Resource's replace() method."""
+    pass
+
+
+def test_add_alt_label():
+    """Test Resource's add_alt_label() method."""
+    pass
+
+
+def test_set_pref_label():
+    """Test Resource's set_pref_label() method."""
+    pass

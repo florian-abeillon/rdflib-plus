@@ -5,12 +5,11 @@ import urllib.parse
 
 from inflection import underscore
 
-# TODO: Find a better way, than hard-coding it here
-# Source: https://datatracker.ietf.org/doc/html/rfc3986#section-2.2
-ILLEGAL_CHARS_OFFICIAL = ":/?#[]@!$&'()*+,;="
-# Source: https://afs.github.io/rdf-iri-syntax.html#notes-iris
-ILLEGAL_CHARS_UNOFFICIAL = " {}<>"
-ILLEGAL_CHARS_IN_AUTHORITY_ONLY = "@():"
+from rdflib_plus.config import (
+    ILLEGAL_CHARS_IN_AUTHORITY_ONLY,
+    ILLEGAL_CHARS_OFFICIAL,
+    ILLEGAL_CHARS_UNOFFICIAL,
+)
 
 # Get the percent-encoding of URI/IRI illegal characters
 ILLEGAL_CHARS_PERCENT_ENCODED = {

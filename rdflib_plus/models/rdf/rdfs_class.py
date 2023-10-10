@@ -18,7 +18,6 @@ from rdflib_plus.models.rdf.rdfs_resource import Resource, ResourceOrIri
 from rdflib_plus.models.utils.types import (
     ConstraintsType,
     GraphType,
-    IdentifierPropertyType,
     IdentifierType,
     LangType,
 )
@@ -37,7 +36,7 @@ class Class(Resource):
 
     # Property that links Class to its parent(s)
     # Typehint: Property | IRI
-    _parent_property = RDFS.subClassOf
+    _parent_property: IRI = RDFS.subClassOf
 
     # Class's property constraints
     _constraints: ConstraintsType = Resource.update_constraints(
@@ -55,7 +54,7 @@ class Class(Resource):
         check_triples: bool = DEFAULT_CHECK_TRIPLES,
         bnode: bool = False,
         constraints: Optional[ConstraintsType] = None,
-        identifier_property: Optional[IdentifierPropertyType] = None,
+        identifier_property: Optional[IRI] = None,
     ) -> None:
         """Initialize Class.
 
@@ -82,7 +81,7 @@ class Class(Resource):
             constraints (Optional[dict[IRI, dict[str, Any]]], optional):
                 Class's specific constraints.
                 Defaults to None.
-            identifier_property (Optional[IRI, dict[str, IRI]], optional):
+            identifier_property (Optional[IRI | Property], optional):
                 Class's specific identifier property.
                 Defaults to None.
         """

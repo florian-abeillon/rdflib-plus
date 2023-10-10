@@ -12,9 +12,16 @@ DEFAULT_LANGUAGE: Optional[str] = None
 DEFAULT_PREFIX: str = ""
 
 # Scheme of the default namespaces
-DEFAULT_SCHEME = "http"
+DEFAULT_SCHEME: str = "http"
 # Default subdomains of the default and shape namespaces
 DEFAULT_SUBDOMAIN: str = "default"
 SHAPES_SUBDOMAIN: str = "shapes"
 # Default domain of the default and shape namespaces
 DEFAULT_DOMAIN: str = "example.com"
+
+# Illegal characters in various parts of IRI
+# Source: https://datatracker.ietf.org/doc/html/rfc3986#section-2.2
+ILLEGAL_CHARS_OFFICIAL: str = ":/?#[]@!$&'()*+,;="
+# Source: https://afs.github.io/rdf-iri-syntax.html#notes-iris
+ILLEGAL_CHARS_UNOFFICIAL: str = " {}<>"
+ILLEGAL_CHARS_IN_AUTHORITY_ONLY: str = "@():"

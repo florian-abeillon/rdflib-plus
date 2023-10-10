@@ -18,7 +18,6 @@ from rdflib_plus.definitions import RDFS_CLASSES
 from rdflib_plus.models.utils.types import (
     ConstraintsType,
     GraphType,
-    IdentifierPropertyType,
     IdentifierType,
     LangType,
 )
@@ -37,7 +36,7 @@ class Resource(RdflibResource):
     _type: ResourceOrIri = RDFS.Resource
 
     # Property that links Resource to its identifier
-    _identifier_property: IdentifierPropertyType = RDFS_CLASSES[_type][
+    _identifier_property: ResourceOrIri = RDFS_CLASSES[_type][
         "identifier_property"
     ]
 
@@ -156,7 +155,8 @@ class Resource(RdflibResource):
             super().__init__(graph, iri)
             return
 
-        # Resource is not a blank node a priori
+        # Resource is not a blank node a priori, and
+        # it uses the base DCTERMS.identifier property
         bnode = False
 
         # Strip label
@@ -176,12 +176,6 @@ class Resource(RdflibResource):
         if identifier is None:
             # Use label as identifier
             identifier = label
-
-            # Get appropriate label ID given lang
-            if isinstance(self._identifier_property, dict):
-                self._identifier_property = self._identifier_property[
-                    self._lang
-                ]
 
         # Format identifier
         self.id_ = self._format_identifier(identifier)
@@ -274,18 +268,6 @@ class Resource(RdflibResource):
 
         # Build Resource's base path
         path = "/".join(self._path)
-
-        # TODO: When different identifier properties are used
-        #       with the same type of resources, as two different
-        #       resources may have the same fragment.
-        #       Prepending "self._identifier_property.fragment"
-        #       to the fragment solves the problem, but resources
-        #       become harder to fetch, as one needs the resource's
-        #       own identifier property to find it.
-        #
-        # identifier_property = self._identifier_property.fragment
-        # fragment = f"{identifier_property}={identifier}"
-        # path = f"{path}#{fragment}"
 
         # Add identifier to path as a fragment
         path = f"{path}#{identifier}"
@@ -609,37 +591,6 @@ class Resource(RdflibResource):
 
         # Set its new value
         self.set(p, o, lang=lang, check_triple=check_triple)
-
-    # # Useless
-    # def add_or_set(
-    #     self,
-    #     p: ResourceOrIri,
-    #     o: ObjectType,
-    #     lang: LangType = DEFAULT_LANGUAGE,
-    #     check_triple: Optional[bool] = None,
-    # ) -> None:
-    #     """Add or set triple depending on p having a 'unique' constraint.
-
-    #     Args:
-    #         p (Resource | IRI):
-    #             Predicate of triple.
-    #         o (Resource | IRI | Any):
-    #             Object of triple.
-    #         lang (Optional[str], optional):
-    #             Language of object. Defaults to DEFAULT_LANGUAGE.
-    #         check_triple (Optional[bool], optional):
-    #             Whether to check the added triple. Defaults to None.
-    #     """
-
-    #     constraints = self._constraints.get(p, {})
-    #     if (
-    #         constraints.get("minCount") == 1
-    #         and constraints.get("maxCount") == 1
-    #     ):
-    #         # ) or constraints.get("unique", False):
-    #         self.set(p, o, lang=lang, check_triple=check_triple)
-    #     else:
-    #         self.add(p, o, lang=lang, check_triple=check_triple)
 
     def add_alt_label(
         self,

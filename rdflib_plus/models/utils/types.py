@@ -9,5 +9,4 @@ from rdflib import URIRef as IRI
 ConstraintsType = dict[IRI, dict[str, Any]]
 GraphType = Graph | MultiGraph
 IdentifierType = str | int
-IdentifierPropertyType = IRI | dict[str, IRI]
 LangType = Optional[str]

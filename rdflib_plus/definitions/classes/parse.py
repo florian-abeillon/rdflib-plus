@@ -7,7 +7,6 @@ from rdflib import URIRef as IRI
 from rdflib_plus.definitions.utils import (
     parse_constraints,
     parse_definition_file,
-    parse_identifier_property,
 )
 from rdflib_plus.namespaces import parse_prefixed_iri
 
@@ -47,7 +46,7 @@ def parse_class_constraints(
 PARSING_PROCESSES_CLASS = {
     "bnode": None,
     "constraints": parse_class_constraints,
-    "identifier_property": parse_identifier_property,
+    "identifier_property": parse_prefixed_iri,
     "properties": parse_class_properties,
     "super_class": parse_prefixed_iri,
 }

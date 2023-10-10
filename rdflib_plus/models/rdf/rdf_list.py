@@ -14,7 +14,6 @@ from rdflib_plus.models.utils.ordered_object import OrderedObject
 from rdflib_plus.models.utils.types import ConstraintsType, GraphType
 
 
-# TODO: Use rdflib.collection?
 class List(OrderedObject):
     """RDF List constructor"""
 
