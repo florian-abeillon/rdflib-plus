@@ -1,9 +1,11 @@
 """RDF Bag constructor"""
 
+from typing import Union
+
 from rdflib import RDF
 
 from rdflib_plus.models.rdf.rdfs_container import Container
-from rdflib_plus.utils import ObjectType, ResourceOrIri
+from rdflib_plus.models.rdf.rdfs_resource import ObjectType, ResourceOrIri
 
 
 class Bag(Container):
@@ -57,7 +59,7 @@ class Bag(Container):
         # Try to remove other instances of element, until none are left
         self.discard(element)
 
-    def update(self, new_elements: "Bag" | list[ObjectType]) -> None:
+    def update(self, new_elements: Union["Bag", list[ObjectType]]) -> None:
         """Update Bag with new elements.
 
         Args:

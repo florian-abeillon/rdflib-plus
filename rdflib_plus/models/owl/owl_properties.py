@@ -2,7 +2,7 @@
 
 from rdflib import OWL
 
-from rdflib_plus.models.utils import define_class
+from rdflib_plus.models.utils.define import define_class
 
 # Define OWL Property constructors
 FunctionalProperty = define_class("FunctionalProperty", OWL)

@@ -9,7 +9,7 @@ from inflection import underscore
 # Source: https://datatracker.ietf.org/doc/html/rfc3986#section-2.2
 ILLEGAL_CHARS_OFFICIAL = ":/?#[]@!$&'()*+,;="
 # Source: https://afs.github.io/rdf-iri-syntax.html#notes-iris
-ILLEGAL_CHARS_UNOFFICIAL = " {}"
+ILLEGAL_CHARS_UNOFFICIAL = " {}<>"
 ILLEGAL_CHARS_IN_AUTHORITY_ONLY = "@():"
 
 # Get the percent-encoding of URI/IRI illegal characters

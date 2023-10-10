@@ -33,5 +33,10 @@ NAMESPACE_TO_PREFIX = {
 
 # Create inverse dictionary
 PREFIX_TO_NAMESPACE = {
-    prefix: namespace for namespace, prefix in NAMESPACE_TO_PREFIX
+    prefix: namespace for namespace, prefix in NAMESPACE_TO_PREFIX.items()
+}
+
+# Turn namespace into string for convenience
+NAMESPACE_TO_PREFIX = {
+    str(namespace): prefix for namespace, prefix in NAMESPACE_TO_PREFIX.items()
 }

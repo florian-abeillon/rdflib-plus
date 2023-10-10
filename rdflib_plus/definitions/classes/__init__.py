@@ -8,7 +8,7 @@ from rdflib_plus.utils.load import get_path_to_dir
 path_to_dir = get_path_to_dir(__file__)
 
 # Parse Class YAML file
-path_to_classes = path_to_dir / "definition_classes.yaml"
+path_to_classes = path_to_dir / "definition.yaml"
 RDFS_CLASSES = parse_class_definition_file(
     path_to_classes, properties=RDF_PROPERTIES
 )

@@ -1,6 +1,6 @@
 """Useful custom types"""
 
-from typing import Any, Literal, Optional
+from typing import Any, Optional
 
 from rdflib import ConjunctiveGraph as MultiGraph
 from rdflib import Graph
@@ -11,6 +11,3 @@ GraphType = Graph | MultiGraph
 IdentifierType = str | int
 IdentifierPropertyType = IRI | dict[str, IRI]
 LangType = Optional[str]
-PropertyOrIri = "Property" | IRI
-ResourceOrIri = "Resource" | IRI
-ObjectType = ResourceOrIri | Literal | Any

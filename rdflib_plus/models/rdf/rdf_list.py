@@ -1,20 +1,20 @@
 """RDF List constructor"""
 
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 from rdflib import RDF, Namespace
 
 from rdflib_plus.definitions import RDFS_CLASSES
-from rdflib_plus.models import Resource
-from rdflib_plus.models.utils.ordered_object import OrderedObject
-from rdflib_plus.utils import (
-    ConstraintsType,
-    GraphType,
+from rdflib_plus.models.rdf.rdfs_resource import (
     ObjectType,
+    Resource,
     ResourceOrIri,
 )
+from rdflib_plus.models.utils.ordered_object import OrderedObject
+from rdflib_plus.models.utils.types import ConstraintsType, GraphType
 
 
+# TODO: Use rdflib.collection?
 class List(OrderedObject):
     """RDF List constructor"""
 
@@ -138,7 +138,7 @@ class List(OrderedObject):
 
         self._append(element)
 
-    def extend(self, new_elements: "List" | list[ObjectType]) -> None:
+    def extend(self, new_elements: Union["List", list[ObjectType]]) -> None:
         """Extend List with new elements.
 
         Args:

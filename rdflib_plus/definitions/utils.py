@@ -5,7 +5,7 @@ from typing import Callable, Optional
 from langcodes import standardize_tag
 from rdflib import URIRef as IRI
 
-from rdflib_plus.namespaces import PREFIX_TO_NAMESPACE
+from rdflib_plus.namespaces import parse_prefixed_iri
 from rdflib_plus.utils import parse_yaml
 
 
@@ -39,31 +39,6 @@ def copy_key_value_if_exists(
     dict_to[key] = process(value) if process is not None else value
 
     return None
-
-
-def parse_prefixed_iri(prefixed_iri: str) -> IRI:
-    """Parse prefixed IRI into full IRI.
-
-    Args:
-        prefixed_iri (str):
-            Prefixed IRI to parse.
-
-    Returns:
-        IRI: Full IRI.
-    """
-
-    # Add default (empty) namespace if none is specified
-    if ":" not in prefixed_iri:
-        prefixed_iri = f":{prefixed_iri}"
-
-    # Parse prefix and label
-    prefix, label = prefixed_iri.split(":")
-
-    # Build full IRI
-    namespace = PREFIX_TO_NAMESPACE(prefix)
-    iri = namespace[label]
-
-    return iri
 
 
 def parse_identifier_property(
@@ -122,7 +97,7 @@ def parse_definition_file(
         values_parsed = {}
 
         # Add possible key-values (if exist)
-        for field, process in definition_fields:
+        for field, process in definition_fields.items():
             copy_key_value_if_exists(
                 field, values, values_parsed, process=process
             )
@@ -131,3 +106,86 @@ def parse_definition_file(
         dictionary_parsed[iri] = values_parsed
 
     return dictionary_parsed
+
+
+def parse_constraints(
+    constraints: dict[str, str | int],
+    is_class: bool = False,
+    constraint_processes: Optional[dict[str, Callable]] = None,
+) -> dict[str, IRI | int]:
+    """Parse constraints, as defined in YAML file.
+
+    Args:
+        constraints (dict[str, str | int]):
+            Constraints to parse.
+        is_class (bool, optional):
+            Whether constraints are a class's. Defaults to False.
+        constraint_processes (Optional[dict[str, Callable]], optional):
+            Dictionary of constraints to their associated process.
+
+    Returns:
+        dict[str, IRI | int]: Parsed constraints.
+    """
+
+    # Initialize parsed constraints
+    constraints_parsed = {}
+
+    # TODO: Necessary for SHACL graph construction?
+    # def parse_add_constraint(constraint: str, value: str | int) -> None:
+    #     """Parse and add constraint to constraints_parsed.
+
+    #     Args:
+    #         constraint (str):
+    #             Name of the constraint to parse and add.
+    #         value (str | int):
+    #             Value of the constraint.
+    #     """
+
+    #     # Get its associated process to apply to value
+    #     process = CONSTRAINTS_OBJECTS[constraint]
+
+    #     # Add it to the parsed constraints dictionary
+    #     constraints_parsed[constraint] = (
+    #         process(value) if process is not None else value
+    #     )
+
+    # # For every constraint
+    # for constraint, value in constraints.items():
+    #     # If constraint is 'unique'
+    #     # Translate it into 'minCount'/'maxCount'
+    #     if constraint == "unique" and value is True:
+    #         parse_add_constraint("minCount", 1)
+    #         parse_add_constraint("maxCount", 1)
+
+    #     # Otherwise, parse and add constraint
+    #     else:
+    #         parse_add_constraint(constraint, value)
+
+    # For every constraint
+    for constraint, values in constraints.items():
+        # If constraint has only one value
+        if not isinstance(values, list):
+            # Turn value into a list
+            values = [values]
+
+        # If constraints to parse are classes'
+        if is_class:
+            # Parse constraint into IRI
+            constraint = parse_prefixed_iri(constraint)
+            # Define process to parse values
+            process = parse_prefixed_iri
+
+        # Otherwise, if constraints to parse are properties'
+        else:
+            # Get its associated process to apply to value
+            process = constraint_processes[constraint]
+
+        # If a process is specified
+        if process is not None:
+            # Apply process to every value
+            values = [process(value) for value in values]
+
+        # Add it to the parsed constraints dictionary
+        constraints_parsed[constraint] = values
+
+    return constraints_parsed

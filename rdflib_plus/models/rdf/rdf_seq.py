@@ -1,11 +1,11 @@
 """RDF Seq constructor"""
 
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 from rdflib import RDF
 
 from rdflib_plus.models.rdf.rdfs_container import Container
-from rdflib_plus.utils import ObjectType, ResourceOrIri
+from rdflib_plus.models.rdf.rdfs_resource import ObjectType, ResourceOrIri
 
 
 class Seq(Container):
@@ -68,7 +68,7 @@ class Seq(Container):
 
         self._append(element)
 
-    def extend(self, new_elements: "Seq" | list[ObjectType]) -> None:
+    def extend(self, new_elements: Union["Seq", list[ObjectType]]) -> None:
         """Extend Seq with new elements.
 
         Args:

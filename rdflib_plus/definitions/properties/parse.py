@@ -2,11 +2,19 @@
 
 from rdflib import URIRef as IRI
 
-from rdflib_plus.definitions.constraints import CONSTRAINTS_OBJECTS
 from rdflib_plus.definitions.utils import (
+    parse_constraints,
     parse_definition_file,
-    parse_prefixed_iri,
 )
+from rdflib_plus.namespaces import parse_prefixed_iri
+
+CONSTRAINTS_OBJECTS = {
+    "class": parse_prefixed_iri,
+    "datatype": parse_prefixed_iri,
+    "minCount": None,
+    "maxCount": None,
+    # "unique": None,
+}
 
 
 def parse_property_constraints(
@@ -16,57 +24,15 @@ def parse_property_constraints(
 
     Args:
         constraints (dict[str, str | int]):
-            Property constraints to parse.
+            Constraints to parse.
 
     Returns:
-        dict[str, IRI | int]: Parsed property constraints.
+        dict[str, IRI | int]: Parsed constraints.
     """
 
-    # Initialize parsed constraints
-    constraints_parsed = {}
-
-    # TODO: Necessary for SHACL graph construction?
-    # def parse_add_constraint(constraint: str, value: str | int) -> None:
-    #     """Parse and add constraint to constraints_parsed.
-
-    #     Args:
-    #         constraint (str):
-    #             Name of the constraint to parse and add.
-    #         value (str | int):
-    #             Value of the constraint.
-    #     """
-
-    #     # Get its associated process to apply to value
-    #     process = CONSTRAINTS_OBJECTS[constraint]
-
-    #     # Add it to the parsed constraints dictionary
-    #     constraints_parsed[constraint] = (
-    #         process(value) if process is not None else value
-    #     )
-
-    # # For every constraint
-    # for constraint, value in constraints.items():
-    #     # If constraint is 'unique'
-    #     # Translate it into 'minCount'/'maxCount'
-    #     if constraint == "unique" and value is True:
-    #         parse_add_constraint("minCount", 1)
-    #         parse_add_constraint("maxCount", 1)
-
-    #     # Otherwise, parse and add constraint
-    #     else:
-    #         parse_add_constraint(constraint, value)
-
-    # For every constraint
-    for constraint, value in constraints.items():
-        # Get its associated process to apply to value
-        process = CONSTRAINTS_OBJECTS[constraint]
-
-        # Add it to the parsed constraints dictionary
-        constraints_parsed[constraint] = (
-            process(value) if process is not None else value
-        )
-
-    return constraints_parsed
+    return parse_constraints(
+        constraints, is_class=False, constraint_processes=CONSTRAINTS_OBJECTS
+    )
 
 
 # Define legal fields in definition file

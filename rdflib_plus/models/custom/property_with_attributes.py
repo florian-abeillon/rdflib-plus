@@ -5,7 +5,7 @@ from typing import Optional
 from rdflib_plus.config import DEFAULT_CHECK_TRIPLES
 from rdflib_plus.models.custom.n_ary_property import NaryProperty
 from rdflib_plus.models.rdf.rdfs_resource import Resource
-from rdflib_plus.utils import GraphType
+from rdflib_plus.models.utils.types import GraphType
 
 
 class PropertyWithAttributes(NaryProperty):

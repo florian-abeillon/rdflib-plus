@@ -4,9 +4,13 @@ from rdflib import RDF, RDFS
 from rdflib import URIRef as IRI
 
 from rdflib_plus.definitions import RDFS_CLASSES
-from rdflib_plus.models.rdf.rdfs_resource import Resource
+from rdflib_plus.models.rdf.rdfs_resource import (
+    ObjectType,
+    Resource,
+    ResourceOrIri,
+)
 from rdflib_plus.models.utils.ordered_object import OrderedObject
-from rdflib_plus.utils import ConstraintsType, ObjectType, ResourceOrIri
+from rdflib_plus.models.utils.types import ConstraintsType
 
 
 class Container(OrderedObject):

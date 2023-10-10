@@ -9,7 +9,7 @@ from rdflib_plus.utils.load import get_path_to_dir
 path_to_dir = get_path_to_dir(__file__)
 
 # Parse Property YAML file
-path_to_properties = path_to_dir / "definition_properties.yaml"
+path_to_properties = path_to_dir / "definition.yaml"
 RDF_PROPERTIES = parse_property_definition_file(path_to_properties)
 
 

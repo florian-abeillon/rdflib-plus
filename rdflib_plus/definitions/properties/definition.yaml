@@ -2,10 +2,10 @@
 dcterms:identifier:
 
   constraints:
-    datatype: 
-      - xsd:integer
-      - xsd:string
-    minCount: 1
+    datatype: xsd:string
+      # - xsd:integer     # TODO: Do we want integers? Or only strings?
+      # - xsd:string
+    # minCount: 1         # TODO: Not blank nodes
 
 rdf:type:
 
@@ -16,13 +16,17 @@ rdf:type:
 skos:prefLabel:
 
   constraints:
-    datatype: xsd:string
-    maxCount: 1         # TODO: maxCount by language
+    datatype:
+      - xsd:string
+      - rdf:langString
+    # maxCount: 1         # TODO: maxCount by language
 
 skos:altLabel:
 
   constraints:
-    datatype: xsd:string
+    datatype:
+      - xsd:string
+      - rdf:langString
 
 rdfs:subClassOf:
 
@@ -33,3 +37,43 @@ rdfs:subPropertyOf:
 
   constraints:
     class: rdf:Property
+
+rdfs:member:
+
+  constraints:
+    class: rdfs:Resource
+
+rdf:first:
+
+  constraints:
+    class: rdfs:Resource
+
+rdf:rest:
+
+  constraints:
+    class: rdf:List
+
+rdfs:comment:
+
+  constraints:
+    class: xsd:string
+
+owl:versionIRI:
+
+  constraints:
+    class: owl:Ontology
+
+owl:versionInfo:
+
+  constraints:
+    class: xsd:string
+
+owl:priorVersion:
+
+  constraints:
+    class: owl:Ontology
+
+owl:imports:
+
+  constraints:
+    class: owl:Ontology

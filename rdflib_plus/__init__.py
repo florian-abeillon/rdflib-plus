@@ -1,11 +1,10 @@
 """Import everything"""
 
 from rdflib_plus.definitions import (
-    RDF_PROPERTIES,
-    RDFS_CLASSES,
     parse_class_definition_file,
     parse_property_definition_file,
 )
+from rdflib_plus.graphs import Graph, MultiGraph
 from rdflib_plus.models import (
     Alt,
     Bag,
@@ -38,8 +37,10 @@ __all__ = [
     "Bag",
     "Class",
     "FunctionalProperty",
+    "Graph",
     "InverseFunctionalProperty",
     "List",
+    "MultiGraph",
     "NaryProperty",
     "Ontology",
     "Property",
@@ -48,8 +49,6 @@ __all__ = [
     "Seq",
     "SymmetricProperty",
     "TransitiveProperty",
-    "RDF_PROPERTIES",
-    "RDFS_CLASSES",
     "DEFAULT_NAMESPACE",
     "NAMESPACE_TO_PREFIX",
     "PREFIX_TO_NAMESPACE",

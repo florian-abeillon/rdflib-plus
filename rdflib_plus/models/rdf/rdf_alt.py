@@ -6,7 +6,8 @@ from typing import Optional
 from rdflib import RDF, Namespace
 
 from rdflib_plus.models.rdf.rdfs_container import Container
-from rdflib_plus.utils import GraphType, ObjectType, ResourceOrIri
+from rdflib_plus.models.rdf.rdfs_resource import ObjectType, ResourceOrIri
+from rdflib_plus.models.utils.types import GraphType
 
 # Define specific custom type
 AlternativesType = list[ObjectType] | set[ObjectType]

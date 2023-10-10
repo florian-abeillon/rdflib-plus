@@ -12,17 +12,16 @@ from rdflib_plus.config import (
 )
 from rdflib_plus.models.rdf.rdf_property import Property
 from rdflib_plus.models.rdf.rdfs_class import Class
-from rdflib_plus.models.rdf.rdfs_resource import Resource
-from rdflib_plus.utils import (
-    ConstraintsType,
-    GraphType,
-    LangType,
+from rdflib_plus.models.rdf.rdfs_resource import (
     ObjectType,
+    Resource,
     ResourceOrIri,
 )
+from rdflib_plus.models.utils.types import ConstraintsType, GraphType, LangType
+from rdflib_plus.namespaces import stringify_iri
 
 # Define specific custom types
-SuperPropertyType = "Property" | IRI | list["Property" | IRI]
+SuperPropertyType = Property | IRI | list[Property | IRI]
 ParsedPairType = tuple[ResourceOrIri, ObjectType, bool]
 UnparsedPairType = tuple[ResourceOrIri, ObjectType] | ParsedPairType
 UnparsedPairListType = list[UnparsedPairType]
@@ -157,11 +156,14 @@ class NaryProperty(Property):
             Resource: Instance of n-ary property
         """
 
-        assert self.bnode, (
-            f"{self.iri}: Trying to create instance of non-n-ary property. "
-            "Please use Property as is to link resources "
-            "(no need to create an instance of it)."
-        )
+        # If associated property does not allow blank nodes
+        if not self.bnode:
+            # Raise an error
+            raise ValueError(
+                f"{stringify_iri(self.iri)}: Trying to create instance of "
+                "non-n-ary property. Please use Property as is to link resources "
+                "(no need to create an instance of it)."
+            )
 
         Class.__call__(self, graph=graph, check_triples=check_triples)
 

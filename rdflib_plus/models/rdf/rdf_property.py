@@ -2,7 +2,7 @@
 
 import re
 import warnings
-from typing import Optional
+from typing import Optional, Union
 
 from inflection import camelize
 from rdflib import OWL, RDF, RDFS, Namespace
@@ -13,21 +13,20 @@ from rdflib_plus.config import (
     DEFAULT_HIERARCHICAL_PATH,
     DEFAULT_LANGUAGE,
 )
-from rdflib_plus.definitions import RDF_PROPERTIES
+from rdflib_plus.definitions import RDFS_CLASSES
 from rdflib_plus.models.rdf.rdfs_class import Class
-from rdflib_plus.models.rdf.rdfs_resource import Resource
-from rdflib_plus.utils import (
-    ConstraintsType,
-    GraphType,
-    LangType,
+from rdflib_plus.models.rdf.rdfs_resource import (
     ObjectType,
-    PropertyOrIri,
+    Resource,
     ResourceOrIri,
-    format_label,
 )
+from rdflib_plus.models.utils.types import ConstraintsType, GraphType, LangType
+from rdflib_plus.namespaces import stringify_iri
+from rdflib_plus.utils import format_label
 
 # Define specific custom types
-SuperPropertyType = "Property" | IRI | list["Property" | IRI]
+PropertyOrIri = Union["Property", IRI]
+SuperPropertyType = Union[PropertyOrIri, list[PropertyOrIri]]
 ParsedPairType = tuple[ResourceOrIri, ObjectType, bool]
 UnparsedPairType = tuple[ResourceOrIri, ObjectType] | ParsedPairType
 UnparsedPairListType = list[UnparsedPairType]
@@ -44,7 +43,7 @@ class Property(Class):
 
     # Class's property constraints
     _constraints: ConstraintsType = Resource.update_constraints(
-        RDF_PROPERTIES[_type]["constraints"]
+        RDFS_CLASSES[_type]["constraints"]
     )
 
     def __init__(
@@ -209,5 +208,5 @@ class Property(Class):
         """Null function, as vanilla Property object cannot be called"""
 
         # Raise warning and error
-        warnings.warn(f"Cannot call Property '{self.iri}'.")
+        warnings.warn(f"Cannot call Property '{stringify_iri(self.iri)}'.")
         raise NotImplementedError

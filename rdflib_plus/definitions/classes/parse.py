@@ -5,29 +5,41 @@ from typing import Optional
 from rdflib import URIRef as IRI
 
 from rdflib_plus.definitions.utils import (
+    parse_constraints,
     parse_definition_file,
     parse_identifier_property,
-    parse_prefixed_iri,
 )
+from rdflib_plus.namespaces import parse_prefixed_iri
+
+
+def parse_class_properties(properties: list[str]) -> list[IRI]:
+    """Parse a class's properties.
+
+    Args:
+        properties (list[str]):
+            Class's properties, as strings.
+
+    Returns:
+        list[IRI]: Parsed class's properties.
+    """
+
+    return [parse_prefixed_iri(property_) for property_ in properties]
 
 
 def parse_class_constraints(
-    constraints: dict[str, Optional[str]]
-) -> dict[IRI, Optional[IRI]]:
-    """Parse class property constraints, as defined in YAML file.
+    constraints: dict[str, str | int]
+) -> dict[str, IRI | int]:
+    """Parse a class's property constraints, as defined in YAML file.
 
     Args:
-        constraints (dict[str, Optional[str]]):
-            Property constraints to parse.
+        constraints (dict[str, str | int]):
+            Constraints to parse.
 
     Returns:
-        dict[IRI, Optional[IRI]]: Parsed property constraints.
+        dict[str, IRI | int]: Parsed constraints.
     """
 
-    return {
-        parse_prefixed_iri(property_): parse_prefixed_iri(constraint)
-        for property_, constraint in constraints.items()
-    }
+    return parse_constraints(constraints, is_class=True)
 
 
 # Define legal fields in definition file
@@ -36,7 +48,7 @@ PARSING_PROCESSES_CLASS = {
     "bnode": None,
     "constraints": parse_class_constraints,
     "identifier_property": parse_identifier_property,
-    "properties": parse_prefixed_iri,
+    "properties": parse_class_properties,
     "super_class": parse_prefixed_iri,
 }
 
@@ -65,7 +77,7 @@ def parse_class_definition_file(
         class_constraints = class_definition.pop("constraints", {})
         class_constraints = {
             property_iri: {"class": property_constraint}
-            for property_iri, property_constraint in class_constraints
+            for property_iri, property_constraint in class_constraints.items()
         }
 
         # If properties are specified
@@ -76,9 +88,11 @@ def parse_class_definition_file(
             # Add class's properties constraints, as defined in properties
             # and update them with class's constraints (if any)
             for property_iri in class_properties:
-                class_constraints[property_iri] = properties[property_iri][
-                    "constraints"
-                ] | class_constraints.get(property_iri, {})
+                class_constraints[property_iri] = (
+                    class_constraints[property_iri]
+                    if property_iri in class_constraints
+                    else properties[property_iri]["constraints"]
+                )
 
         # Update class's property constraints
         class_definition["constraints"] = class_constraints

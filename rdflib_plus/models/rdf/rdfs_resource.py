@@ -1,11 +1,12 @@
 """RDFS Resource constructor"""
 
+import copy
 import warnings
-from typing import Optional
+from typing import Any, Optional, Union
 
 from langcodes import standardize_tag
 from langcodes.tag_parser import LanguageTagError
-from rdflib import DCTERMS, RDF, RDFS, SKOS
+from rdflib import DCTERMS, RDF, RDFS, SKOS, XSD
 from rdflib import ConjunctiveGraph as MultiGraph
 from rdflib import Literal, Namespace
 from rdflib import URIRef as IRI
@@ -14,17 +15,19 @@ from rdflib.term import _serial_number_generator
 
 from rdflib_plus.config import DEFAULT_CHECK_TRIPLES, DEFAULT_LANGUAGE
 from rdflib_plus.definitions import RDFS_CLASSES
-from rdflib_plus.namespaces import DEFAULT_NAMESPACE
-from rdflib_plus.utils import (
+from rdflib_plus.models.utils.types import (
     ConstraintsType,
     GraphType,
     IdentifierPropertyType,
     IdentifierType,
     LangType,
-    ObjectType,
-    ResourceOrIri,
-    legalize_for_iri,
 )
+from rdflib_plus.namespaces import DEFAULT_NAMESPACE, stringify_iri
+from rdflib_plus.utils import legalize_for_iri
+
+# Define specific custom types
+ResourceOrIri = Union["Resource", IRI]
+ObjectType = ResourceOrIri | Literal | Any
 
 
 class Resource(RdflibResource):
@@ -68,6 +71,26 @@ class Resource(RdflibResource):
 
         return self._identifier
 
+    @property
+    def path(self) -> list[str]:
+        """Return Resource's path.
+
+        Returns:
+            list[str]: Resource '_path' attribute.
+        """
+
+        return self._path
+
+    @property
+    def type(self) -> IRI:
+        """Return Resource's type.
+
+        Returns:
+            IRI: Resource '_type' attribute.
+        """
+
+        return self._type
+
     def __str__(self) -> str:
         """Human-readable string representation of Resource"""
 
@@ -107,30 +130,34 @@ class Resource(RdflibResource):
         """
 
         # Format and set language
-        self.lang = None
+        self._lang = None
         if lang is not None:
             try:
-                self.lang = standardize_tag(lang)
+                self._lang = standardize_tag(lang)
             except LanguageTagError:
                 warnings.warn(
                     f"Language code '{lang}' could not be parsed "
-                    "according to BCP 47. Setting Resource "
+                    "according to BCP 47. Setting language of Resource "
                     f"""'{
-                        iri if iri is not None
+                        stringify_iri(iri) if iri is not None
                         else identifier if identifier is not None
                         else label
                     }' as None."""
                 )
 
-        # Set path and check_triples
-        self.path = path if path is not None else [self._type.fragment]
-        self.check_triples = check_triples
+        # Set path and _check_triples attributes
+        self._path = copy.deepcopy(path) if path is not None else []
+        self._path.append(self._type.fragment)
+        self._check_triples = check_triples
 
         # If an IRI is directly specified
         if iri is not None:
             # Just create a Resource using IRI
             super().__init__(graph, iri)
             return
+
+        # Resource is not a blank node a priori
+        bnode = False
 
         # Strip label
         if label is not None:
@@ -139,7 +166,11 @@ class Resource(RdflibResource):
         # If no iri nor label nor identifier is specified,
         # create Resource as blank node
         elif identifier is None:
+            # Generate arbitrary identifier
             identifier = _serial_number_generator()()
+
+            # Specify it is a blank node
+            bnode = True
 
         # If no identifier is specified
         if identifier is None:
@@ -149,7 +180,7 @@ class Resource(RdflibResource):
             # Get appropriate label ID given lang
             if isinstance(self._identifier_property, dict):
                 self._identifier_property = self._identifier_property[
-                    self.lang
+                    self._lang
                 ]
 
         # Format identifier
@@ -161,7 +192,7 @@ class Resource(RdflibResource):
         # If Resource was never initialized before,
         # Add type and identifier to the specified graph
         if not (iri, None, None) in graph:
-            self._initialize_resource(graph, iri, label)
+            self._initialize_resource(graph, iri, label, bnode=bnode)
 
         # Set entire graph as an attribute
         # ie. not just subgraph, if applicable
@@ -182,8 +213,8 @@ class Resource(RdflibResource):
                 # If graph does not support subgraphs,
                 # raise a warning
                 warnings.warn(
-                    f"{iri}: Namespace '{namespace}' provided, but specified "
-                    "graph does not support subgraphs "
+                    f"{stringify_iri(iri)}: Namespace '{namespace}' provided, "
+                    "but specified graph does not support subgraphs "
                     "(use rdflib.ConjunctiveGraph instead of rdflib.Graph)."
                 )
 
@@ -242,7 +273,7 @@ class Resource(RdflibResource):
         """
 
         # Build Resource's base path
-        path = "/".join(self.path)
+        path = "/".join(self._path)
 
         # TODO: When different identifier properties are used
         #       with the same type of resources, as two different
@@ -262,7 +293,11 @@ class Resource(RdflibResource):
         return path
 
     def _initialize_resource(
-        self, graph: GraphType, iri: IRI, label: Optional[str]
+        self,
+        graph: GraphType,
+        iri: IRI,
+        label: Optional[str],
+        bnode: bool = False,
     ) -> None:
         """Create RDFS Resource
 
@@ -273,19 +308,25 @@ class Resource(RdflibResource):
                 Resource's IRI.
             label (Optional[str]):
                 Resource's label.
+            bnode (bool, optional):
+                Whether Resource is a blank node. Defaults to False.
         """
 
         # Create resource
         resource = Resource(graph, iri=iri)
 
-        # Add its type and identifier
+        # Add its type
         resource.add(RDF.type, self._type)
-        resource.set(self._identifier_property, self.id_)
 
-        # If a label is specified
-        if label is not None:
-            # Add it as SKOS.prefLabel
-            resource.set_pref_label(label, lang=self.lang)
+        # If Resource is not a blank node
+        if not bnode:
+            # Set its identifier in graph
+            resource.set(self._identifier_property, self.id_)
+
+            # If a label is specified
+            if label is not None:
+                # Add it as SKOS.prefLabel
+                resource.set_pref_label(label, lang=self._lang)
 
     def get_attribute(self, predicate: ResourceOrIri) -> IRI | Literal:
         """Get value of (unique) attribute.
@@ -320,12 +361,14 @@ class Resource(RdflibResource):
         if isinstance(resource, Resource):
             return resource.iri
 
-        # If resource is not the object of a triple
-        if not is_object:
-            # Check that it is indeed an IRI (and not a Literal)
-            assert isinstance(
-                resource, IRI
-            ), f"Resource {resource} is not an IRI nor a rdflib_plus.Resource."
+        # If resource is not the object of a triple,
+        # and is not an IRI (nor a Literal)
+        if not is_object and not isinstance(resource, IRI):
+            # Raise an error
+            raise TypeError(
+                f"Resource {resource} is not an IRI nor a "
+                "rdflib_plus.Resource."
+            )
 
         return resource
 
@@ -353,29 +396,50 @@ class Resource(RdflibResource):
         """
 
         if check_triple:
-            # Check that p and o are not None
-            assert p is not None, "Trying to add triple with null predicate."
-            assert o is not None, "Trying to add triple with null object."
+            # If p is None
+            if p is None:
+                raise ValueError("Trying to add triple with null predicate.")
+
+            # If o is None
+            if o is None:
+                raise ValueError("Trying to add triple with null object.")
 
         # Format p for graph input
         p = self._format_resource(p, is_object=False)
 
         if check_triple:
-            # Make sure p is valid with Resource
-            assert (
-                p in self._constraints
-            ), f"{self.iri}: Property '{p}' is not valid with this class."
+            # If p is not valid with Resource
+            if p not in self._constraints:
+                # Raise an error
+                raise ValueError(
+                    f"{stringify_iri(self.iri)}: Property '{stringify_iri(p)}'"
+                    f" is not valid with this class."
+                )
 
             # Get constraints of property p
             constraints = self._constraints[p]
 
-        # # If o is a Resource, and has a 'class' constraint
-        # if check_triple and isinstance(o, Resource) and "class" in constraints:
-        #     # TODO: Unsatisfying solution, as it uses the '_type'
-        #     #       protected attribute, and does not check for
-        #     #       parent/super-classes.
-        #     # Check that o is of valid type
-        #     assert o._type == constraints["class"]
+            # TODO: Unsatisfying solution, as it does not check for
+            #       parent/super-classes.
+            # If o is a Resource, predicate has a 'class' constraint
+            # and o's type is not valid
+            if (
+                isinstance(o, Resource)
+                and "class" in constraints
+                and o.type not in constraints["class"]
+            ):
+                # Stringify IRIs
+                constraints = [
+                    stringify_iri(type_) for type_ in constraints["datatype"]
+                ]
+
+                # Raise an error
+                raise TypeError(
+                    f"{stringify_iri(self.iri)}: Object '{stringify_iri(o)}' "
+                    f"does not have valid datatype ({stringify_iri(o.type)} "
+                    f"not in {constraints}) with Property "
+                    f"'{stringify_iri(p)}'."
+                )
 
         # Format o for graph input
         o = self._format_resource(o, is_object=True)
@@ -385,22 +449,52 @@ class Resource(RdflibResource):
             # If o is an empty string, raise warning
             if o == "":
                 warnings.warn(
-                    f"{self.iri}: Empty string is trying to be set or "
-                    f"added using predicate '{p}'"
+                    f"{stringify_iri(self.iri)}: Empty string is trying to be "
+                    f"set or added using predicate '{stringify_iri(p)}'."
                 )
 
-            # Format o into a Literal
+            # If no language is specified
             if lang is None:
-                lang = self.lang
-            o = Literal(o, lang=lang)
+                # Use Resource's language
+                lang = self._lang
 
-        if check_triple:
-            assert isinstance(o, Literal) and isinstance(
-                o.datatype, constraints["datatype"]
-            ), (
-                f"{self.iri}: Object '{o}' does not have valid datatype "
-                "with Property '{p}'."
-            )
+            # If o is a string, and no language is specified
+
+            if isinstance(o, str) and lang is None:
+                # Specify datatype
+                datatype = XSD.string
+            # Otherwise
+            else:
+                # Do not specify datatype (rdflib.Literal() will guess it)
+                datatype = None
+
+            # Format o into a Literal
+            o = Literal(o, datatype=datatype, lang=lang)
+
+        # If o is a Literal, predicate has a "datatype" constraint
+        if (
+            check_triple
+            and isinstance(o, Literal)
+            and "datatype" in constraints
+        ):
+            # Specify o's datatype in case a language was specified
+            # (rdflib.Literal has no datatype if a language is specified)
+            datatype = RDF.langString if lang is not None else o.datatype
+
+            # If o's datatype is not valid
+            if datatype not in constraints["datatype"]:
+                # Stringify IRIs
+                constraints = [
+                    stringify_iri(type_) for type_ in constraints["datatype"]
+                ]
+
+                # Check that it has a valid datatype for
+                # the property in question
+                raise TypeError(
+                    f"{stringify_iri(self.iri)}: Object '{o}' does not have "
+                    f"valid datatype ('{stringify_iri(o.datatype)}' not in "
+                    f"{constraints}) with Property '{stringify_iri(p)}'."
+                )
 
         return p, o
 
@@ -426,7 +520,7 @@ class Resource(RdflibResource):
 
         # If check_triple is not specified, use Class's value
         if check_triple is None:
-            check_triple = self.check_triples
+            check_triple = self._check_triples
 
         # Prepare predicate and object
         p, o = self._format_p_o(p, o, lang=lang, check_triple=check_triple)
@@ -437,8 +531,9 @@ class Resource(RdflibResource):
             if self._constraints[p].get("maxCount") == 1:
                 # Raise a warning
                 warnings.warn(
-                    f"{self.iri}: Adding value of Property '{p}' with "
-                    "the add() method, instead of setting it with set()."
+                    f"{stringify_iri(self.iri)}: Adding value of Property "
+                    f"'{stringify_iri(p)}' with the add() method, instead of "
+                    "setting it with set()."
                 )
 
         # Add object o to Resource, using predicate p
@@ -466,7 +561,7 @@ class Resource(RdflibResource):
 
         # If check_triple is not specified, use Class's value
         if check_triple is None:
-            check_triple = self.check_triples
+            check_triple = self._check_triples
 
         # Prepare predicate and object
         p, o = self._format_p_o(p, o, lang=lang, check_triple=check_triple)
@@ -482,8 +577,8 @@ class Resource(RdflibResource):
 
             # Otherwise, raise warning
             warnings.warn(
-                f"{self.iri}: Overwriting unique attribute "
-                f"'{p}' of value '{value}', with value '{o}'."
+                f"{stringify_iri(self.iri)}: Overwriting unique attribute "
+                f"'{stringify_iri(p)}' of value '{value}', with value '{o}'."
             )
 
         # Set attribute o to Resource, using predicate p
@@ -515,35 +610,36 @@ class Resource(RdflibResource):
         # Set its new value
         self.set(p, o, lang=lang, check_triple=check_triple)
 
-    def add_or_set(
-        self,
-        p: ResourceOrIri,
-        o: ObjectType,
-        lang: LangType = DEFAULT_LANGUAGE,
-        check_triple: Optional[bool] = None,
-    ) -> None:
-        """Add or set triple depending on p having a 'unique' constraint.
+    # # Useless
+    # def add_or_set(
+    #     self,
+    #     p: ResourceOrIri,
+    #     o: ObjectType,
+    #     lang: LangType = DEFAULT_LANGUAGE,
+    #     check_triple: Optional[bool] = None,
+    # ) -> None:
+    #     """Add or set triple depending on p having a 'unique' constraint.
 
-        Args:
-            p (Resource | IRI):
-                Predicate of triple.
-            o (Resource | IRI | Any):
-                Object of triple.
-            lang (Optional[str], optional):
-                Language of object. Defaults to DEFAULT_LANGUAGE.
-            check_triple (Optional[bool], optional):
-                Whether to check the added triple. Defaults to None.
-        """
+    #     Args:
+    #         p (Resource | IRI):
+    #             Predicate of triple.
+    #         o (Resource | IRI | Any):
+    #             Object of triple.
+    #         lang (Optional[str], optional):
+    #             Language of object. Defaults to DEFAULT_LANGUAGE.
+    #         check_triple (Optional[bool], optional):
+    #             Whether to check the added triple. Defaults to None.
+    #     """
 
-        constraints = self._constraints.get(p, {})
-        if (
-            constraints.get("minCount") == 1
-            and constraints.get("maxCount") == 1
-        ):
-            # ) or constraints.get("unique", False):
-            self.set(p, o, lang=lang, check_triple=check_triple)
-        else:
-            self.add(p, o, lang=lang, check_triple=check_triple)
+    #     constraints = self._constraints.get(p, {})
+    #     if (
+    #         constraints.get("minCount") == 1
+    #         and constraints.get("maxCount") == 1
+    #     ):
+    #         # ) or constraints.get("unique", False):
+    #         self.set(p, o, lang=lang, check_triple=check_triple)
+    #     else:
+    #         self.add(p, o, lang=lang, check_triple=check_triple)
 
     def add_alt_label(
         self,
@@ -564,14 +660,14 @@ class Resource(RdflibResource):
 
         # If check_triple is not specified, use Class's value
         if check_triple is None:
-            check_triple = self.check_triples
+            check_triple = self._check_triples
 
         if check_triple:
             # If altLabel to be added is already prefLabel, do nothing
             if self.get_attribute(SKOS.prefLabel) == alt_label:
                 warnings.warn(
-                    f"{self.iri}: SKOS.altLabel '{str(alt_label)}' is "
-                    "already the SKOS.prefLabel. "
+                    f"{stringify_iri(self.iri)}: SKOS.altLabel "
+                    f"'{str(alt_label)}' is already the SKOS.prefLabel. "
                     "Not adding it to altLabel list."
                 )
                 return
@@ -600,21 +696,20 @@ class Resource(RdflibResource):
 
         # If check_triple is not specified, use Class's value
         if check_triple is None:
-            check_triple = self.check_triples
+            check_triple = self._check_triples
 
         # Set pref_label as Resource's SKOS.prefLabel
         self.set(
             SKOS.prefLabel, pref_label, lang=lang, check_triple=check_triple
         )
 
-        if check_triple:
-            # If pref_label was already added as a SKOS.altLabel
-            if pref_label in self.objects(SKOS.altLabel):
-                warnings.warn(
-                    f"{self.iri}: SKOS.prefLabel '{str(pref_label)}' "
-                    "is already a SKOS.altLabel. "
-                    "Removing it from altLabel list."
-                )
+        # If pref_label was already added as a SKOS.altLabel
+        if check_triple and pref_label in self.objects(SKOS.altLabel):
+            warnings.warn(
+                f"{stringify_iri(self.iri)}: SKOS.prefLabel "
+                f"'{str(pref_label)}' is already a SKOS.altLabel. "
+                "Removing it from altLabel list."
+            )
 
-                # Remove pref_label from SKOS.altLabel list
-                self.remove(SKOS.altLabel, o=pref_label)
+            # Remove pref_label from SKOS.altLabel list
+            self.remove(SKOS.altLabel, o=pref_label)

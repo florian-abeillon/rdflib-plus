@@ -2,36 +2,32 @@
 
 from typing import Optional
 
-from rdflib import OWL, RDFS, Literal, Namespace
-from rdflib import URIRef as IRI
+from rdflib import OWL, RDFS, Namespace
 
 from rdflib_plus.config import DEFAULT_CHECK_TRIPLES, DEFAULT_LANGUAGE
-from rdflib_plus.models.rdf.rdfs_resource import Resource
-from rdflib_plus.utils import (
+from rdflib_plus.definitions import RDFS_CLASSES
+from rdflib_plus.models.rdf.rdfs_resource import Resource, ResourceOrIri
+from rdflib_plus.models.utils.types import (
     ConstraintsType,
     GraphType,
     IdentifierPropertyType,
     LangType,
-    ResourceOrIri,
 )
 
 
 class Ontology(Resource):
     """OWL Ontology constructor"""
 
+    # Resource's RDF type
+    _type: ResourceOrIri = OWL.Ontology
+
     # RDFS label of Ontology
     _identifier_property: IdentifierPropertyType = RDFS.label
 
     # Property constraints
-    _constraints: ConstraintsType = {
-        OWL.versionInfo: Literal,
-        RDFS.comment: Literal,
-        OWL.priorVersion: IRI,
-        OWL.imports: IRI,
-    }
-
-    # Resource's RDF type
-    _type: ResourceOrIri = OWL.Ontology
+    _constraints: ConstraintsType = Resource.update_constraints(
+        RDFS_CLASSES[_type]["constraints"]
+    )
 
     def __init__(
         self,

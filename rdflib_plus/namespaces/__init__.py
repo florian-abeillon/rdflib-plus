@@ -7,11 +7,14 @@ from rdflib_plus.namespaces.define import (
     PREFIX_TO_NAMESPACE,
     SHAPES_NAMESPACE,
 )
+from rdflib_plus.namespaces.parse import parse_prefixed_iri, stringify_iri
 
 __all__ = [
+    "create_namespace",
+    "parse_prefixed_iri",
+    "stringify_iri",
     "DEFAULT_NAMESPACE",
     "NAMESPACE_TO_PREFIX",
     "PREFIX_TO_NAMESPACE",
     "SHAPES_NAMESPACE",
-    "create_namespace",
 ]

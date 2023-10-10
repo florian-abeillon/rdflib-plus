@@ -27,7 +27,7 @@ rdfs:Container:
 
   super_class: rdfs:Resource
   properties:
-    - rdf:_*      # TODO: To parse
+    - rdfs:member
 
 rdf:List:
 

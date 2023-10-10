@@ -1,0 +1,310 @@
+"""Test RDFS Resource constructor"""
+
+import pytest
+from rdflib import DCTERMS, RDF, RDFS, SKOS, XSD, Graph, Literal
+from rdflib import URIRef as IRI
+
+from rdflib_plus import Resource
+
+
+@pytest.mark.parametrize(
+    "identifier,iri",
+    [
+        (1, IRI("http://default.example.com/Resource#1")),
+        (42, IRI("http://default.example.com/Resource#42")),
+        ("0.1.0", IRI("http://default.example.com/Resource#0.1.0")),
+        ("identifier", IRI("http://default.example.com/Resource#identifier")),
+    ],
+)
+def test_create_with_identifier(identifier: str, iri: IRI) -> None:
+    """Test Resource object creation with identifier."""
+
+    # Initialize graph
+    graph = Graph()
+
+    # Create Resource object
+    resource = Resource(graph, identifier=identifier)
+
+    # Check attributes
+    assert resource.iri == iri
+    assert resource.path == ["Resource"]
+    assert resource.type == RDFS.Resource
+
+    # Check adequate triples (and no others) are in graph
+    triples = [
+        (
+            iri,
+            RDF.type,
+            RDFS.Resource,
+        ),
+        (
+            iri,
+            DCTERMS.identifier,
+            Literal(identifier, datatype=XSD.string),
+        ),
+    ]
+    assert len(graph) == len(triples)
+    for triple in triples:
+        assert triple in graph
+
+
+@pytest.mark.parametrize(
+    "label,iri",
+    [
+        ("label", IRI("http://default.example.com/Resource#label")),
+        ("Label", IRI("http://default.example.com/Resource#Label")),
+        ("LABEL", IRI("http://default.example.com/Resource#LABEL")),
+        ("laBel", IRI("http://default.example.com/Resource#laBel")),
+        ("123456789", IRI("http://default.example.com/Resource#123456789")),
+        ("R2-D2", IRI("http://default.example.com/Resource#R2-D2")),
+        ("fun.", IRI("http://default.example.com/Resource#fun.")),
+        (
+            "label> a rdfs:Resource . <http://evil.com#command> a <http://evil.com#injection",
+            IRI(
+                "http://default.example.com/Resource#label%3E%20a%20rdfs:Resource%20.%20%3Chttp://evil.com%23command%3E%20a%20%3Chttp://evil.com%23injection"
+            ),
+        ),
+    ],
+)
+def test_create_with_label(label: str, iri: IRI) -> None:
+    """Test Resource object creation with label."""
+
+    # Initialize graph
+    graph = Graph()
+
+    # Create Resource object
+    resource = Resource(graph, label=label)
+
+    # Check attributes
+    assert resource.iri == iri
+    assert resource.path == ["Resource"]
+    assert resource.type == RDFS.Resource
+
+    # Check adequate triples are in graph
+    triples = [
+        (
+            iri,
+            RDF.type,
+            RDFS.Resource,
+        ),
+        (
+            iri,
+            DCTERMS.identifier,
+            Literal(label, datatype=XSD.string),
+        ),
+        (
+            iri,
+            SKOS.prefLabel,
+            Literal(label, datatype=XSD.string),
+        ),
+    ]
+    assert len(graph) == len(triples)
+    for triple in triples:
+        assert triple in graph
+
+
+@pytest.mark.parametrize(
+    "label,lang,iri",
+    [
+        (
+            "behaviour",
+            "en",
+            IRI("http://default.example.com/Resource#behaviour"),
+        ),
+        (
+            "behavior",
+            "en-us",
+            IRI("http://default.example.com/Resource#behavior"),
+        ),
+        (
+            "comportement",
+            "fr-FR",
+            IRI("http://default.example.com/Resource#comportement"),
+        ),
+    ],
+)
+def test_create_with_label_and_lang(label: str, lang: str, iri: IRI) -> None:
+    """Test Resource object creation with label and language."""
+
+    # Initialize graph
+    graph = Graph()
+
+    # Create Resource object
+    resource = Resource(graph, label=label, lang=lang)
+
+    # Check attributes
+    assert resource.iri == iri
+    assert resource.path == ["Resource"]
+    assert resource.type == RDFS.Resource
+
+    # Check adequate triples are in graph
+    triples = [
+        (
+            iri,
+            RDF.type,
+            RDFS.Resource,
+        ),
+        (
+            iri,
+            DCTERMS.identifier,
+            Literal(label, datatype=XSD.string),
+        ),
+        (
+            iri,
+            SKOS.prefLabel,
+            Literal(label, lang=lang),
+        ),
+    ]
+    assert len(graph) == len(triples)
+    for triple in triples:
+        assert triple in graph
+
+
+@pytest.mark.parametrize(
+    "identifier,label,iri",
+    [
+        (
+            "identifier",
+            "identifier",
+            IRI("http://default.example.com/Resource#identifier"),
+        ),
+        (1, "label", IRI("http://default.example.com/Resource#1")),
+    ],
+)
+def test_create_with_identifier_and_label(
+    identifier: str, label: str, iri: IRI
+) -> None:
+    """Test Resource object creation with identifier and label."""
+
+    # Initialize graph
+    graph = Graph()
+
+    # Create Resource object
+    resource = Resource(graph, identifier=identifier, label=label)
+
+    # Check attributes
+    assert resource.iri == iri
+    assert resource.path == ["Resource"]
+    assert resource.type == RDFS.Resource
+
+    # Check adequate triples are in graph
+    triples = [
+        (
+            iri,
+            RDF.type,
+            RDFS.Resource,
+        ),
+        (
+            iri,
+            DCTERMS.identifier,
+            Literal(identifier, datatype=XSD.string),
+        ),
+        (
+            iri,
+            SKOS.prefLabel,
+            Literal(label, datatype=XSD.string),
+        ),
+    ]
+    assert len(graph) == len(triples)
+    for triple in triples:
+        assert triple in graph
+
+
+@pytest.mark.parametrize(
+    "iri",
+    [
+        IRI("http://default.example.com/Resource#1"),
+        IRI("http://default.example.com/Resource#label"),
+    ],
+)
+def test_create_with_iri(iri: IRI) -> None:
+    """Test Resource object creation with iri."""
+
+    # Initialize graph
+    graph = Graph()
+
+    # Create Resource object
+    resource = Resource(graph, iri=iri)
+
+    # Check attributes
+    assert resource.iri == iri
+    assert resource.path == ["Resource"]
+    assert resource.type == RDFS.Resource
+
+    # Check that no triple was added to the graph
+    # (Resource creation with IRI only to retrieve objects)
+    assert len(graph) == 0
+
+
+def test_create_blank_node() -> None:
+    """Test blank node creation."""
+
+    # Initialize graph
+    graph = Graph()
+
+    # Create Resource object
+    resource = Resource(graph)
+
+    # Check attributes
+    assert isinstance(resource.iri, IRI)
+    assert resource.path == ["Resource"]
+    assert resource.type == RDFS.Resource
+
+    # Check adequate triples are in graph
+    triples = [
+        (
+            resource.iri,
+            RDF.type,
+            RDFS.Resource,
+        ),
+    ]
+    assert len(graph) == len(triples)
+    for triple in triples:
+        assert triple in graph
+
+
+@pytest.mark.parametrize(
+    "identifier,path,iri",
+    [
+        (
+            1,
+            ["path", "to", "resource"],
+            IRI("http://default.example.com/path/to/resource/Resource#1"),
+        ),
+        (
+            "id",
+            ["ResourceParent"],
+            IRI("http://default.example.com/ResourceParent/Resource#id"),
+        ),
+    ],
+)
+def test_create_with_path(identifier: str, path: list[str], iri: IRI) -> None:
+    """Test Resource object creation with a path."""
+
+    # Initialize graph
+    graph = Graph()
+
+    # Create Resource object
+    resource = Resource(graph, identifier=identifier, path=path)
+
+    # Check attributes
+    assert resource.iri == iri
+    assert resource.path == (path + ["Resource"])
+    assert resource.type == RDFS.Resource
+
+    # Check adequate triples are in graph
+    triples = [
+        (
+            iri,
+            RDF.type,
+            RDFS.Resource,
+        ),
+        (
+            iri,
+            DCTERMS.identifier,
+            Literal(identifier, datatype=XSD.string),
+        ),
+    ]
+    assert len(graph) == len(triples)
+    for triple in triples:
+        assert triple in graph

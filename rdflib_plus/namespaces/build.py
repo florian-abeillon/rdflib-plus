@@ -55,13 +55,14 @@ def create_namespace(
     # Format every part of the IRI
     scheme = legalize_for_iri(scheme)
     authority = legalize_for_iri(authority)
-    path = legalize_for_iri(path)
 
     # Build IRI from its parts
     iri = f"{scheme}://{authority}/"
 
-    # If any specified, add path
+    # If a path is specified
     if path is not None:
+        # Clean it, then add it to IRI
+        path = legalize_for_iri(path)
         iri += f"{path}/"
 
     # Create namespace from IRI

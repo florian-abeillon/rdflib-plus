@@ -1,7 +1,7 @@
 """RDFS Class constructor"""
 
 import warnings
-from typing import Optional
+from typing import Optional, Union
 from urllib.parse import urldefrag
 
 from inflection import camelize
@@ -14,21 +14,19 @@ from rdflib_plus.config import (
     DEFAULT_LANGUAGE,
 )
 from rdflib_plus.definitions import RDFS_CLASSES
-from rdflib_plus.models.rdf.rdfs_resource import Resource
-from rdflib_plus.namespaces import DEFAULT_NAMESPACE
-from rdflib_plus.utils import (
+from rdflib_plus.models.rdf.rdfs_resource import Resource, ResourceOrIri
+from rdflib_plus.models.utils.types import (
     ConstraintsType,
     GraphType,
     IdentifierPropertyType,
     IdentifierType,
     LangType,
-    PropertyOrIri,
-    ResourceOrIri,
-    format_label,
 )
+from rdflib_plus.namespaces import DEFAULT_NAMESPACE, stringify_iri
+from rdflib_plus.utils import format_label
 
 # Define specific custom type
-SuperClassType = "Class" | IRI | list["Class" | IRI]
+SuperClassType = Union["Class", IRI, list[Union["Class", IRI]]]
 
 
 class Class(Resource):
@@ -38,7 +36,8 @@ class Class(Resource):
     _type: ResourceOrIri = RDFS.Class
 
     # Property that links Class to its parent(s)
-    _parent_property: PropertyOrIri = RDFS.subClassOf
+    # Typehint: Property | IRI
+    _parent_property = RDFS.subClassOf
 
     # Class's property constraints
     _constraints: ConstraintsType = Resource.update_constraints(
@@ -155,9 +154,10 @@ class Class(Resource):
                         # Raise a warning
                         warnings.warn(
                             f"Constraint '{constraint}' has conflicting values"
-                            f" in at least two super-classes of '{self.iri}'. "
-                            "Please harmonize the constraint values, or "
-                            "overrule it with class-specific constraint value."
+                            " in at least two super-classes of "
+                            f"'{stringify_iri(self.iri)}'. Please harmonize the "
+                            "constraint values, or overrule it with "
+                            "class-specific constraint value."
                         )
 
                 # Add current super-class's constraints
@@ -200,10 +200,10 @@ class Class(Resource):
 
         # Add Class's identifier to self.path,
         # So that instances of Class have its identifier in their path
-        self.path.append(identifier)
+        self._path.append(identifier)
 
         # Add identifier to path as a pathinfo
-        path = "/".join(self.path)
+        path = "/".join(self._path)
 
         return path
 
@@ -271,25 +271,33 @@ class Class(Resource):
 
         # If check_triples was not specified, use Class's one
         if check_triples is None:
-            check_triples = self.check_triples
+            check_triples = self._check_triples
 
         # If Class's instances should blank nodes
         if self.bnode:
-            # Make sure no identifier nor label was given
-            assert identifier is None, (
-                f"Trying to create instance of '{self.iri}' as a blank node, "
-                f"but the identifier provided ('{identifier}') is not None."
-            )
-            assert label is None, (
-                f"Trying to create instance of '{self.iri}' as a blank node, "
-                f"but the label provided ('{label}') is not None."
-            )
+            # If an identifier was specified
+            if identifier is not None:
+                # Raise an error
+                raise ValueError(
+                    f"Trying to create instance of '{stringify_iri(self.iri)}' as a "
+                    f"blank node, but the identifier provided ('{identifier}') "
+                    "is not None."
+                )
+
+            # If a label was specified
+            if label is not None:
+                # Raise an error
+                raise ValueError(
+                    f"Trying to create instance of '{stringify_iri(self.iri)}' as a "
+                    f"blank node, but the label provided ('{label}') is not None."
+                    "is not None."
+                )
 
         # Create instance of Class
         instance = self.instance(
             graph,
             label=label,
-            path=self.path,
+            path=self._path,
             lang=lang,
         )
 

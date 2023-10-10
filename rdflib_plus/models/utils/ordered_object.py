@@ -1,12 +1,12 @@
 """Ordered object constructor"""
 
-from typing import Optional
+from typing import Optional, Union
 
 from rdflib import Namespace
 from rdflib import URIRef as IRI
 
-from rdflib_plus.models.rdf.rdfs_resource import Resource
-from rdflib_plus.utils import GraphType, ObjectType
+from rdflib_plus.models.rdf.rdfs_resource import ObjectType, Resource
+from rdflib_plus.models.utils.types import GraphType
 
 
 class OrderedObject(Resource):
@@ -100,13 +100,19 @@ class OrderedObject(Resource):
             # Turn it into "real" positive index
             index += len(self)
 
-        # Check that index is in range
-        assert 0 <= index < len(self), "Provided index is not valid."
+        # If index is not in range
+        if not 0 <= index < len(self):
+            # If index is still negative, set it back to its original value
+            if index < 0:
+                index -= len(self)
+
+            # Raise an error
+            raise ValueError(f"Provided index '{index}' is not valid.")
 
         return index
 
     def _extend(
-        self, new_elements: "OrderedObject" | list[ObjectType]
+        self, new_elements: Union["OrderedObject", list[ObjectType]]
     ) -> None:
         """Extend OrderedObject with new elements.
 
@@ -165,7 +171,7 @@ class OrderedObject(Resource):
                 # Return index of element
                 return i
 
-        # If element is not found in the list, raise error
+        # If element is not found in the list, raise an error
         raise ValueError(f"{element} is not in List")
 
     def count(self, element: ObjectType) -> int:
