@@ -2,8 +2,8 @@
 
 import re
 
-from rdflib import Namespace
 from rdflib import URIRef as IRI
+from rdflib.resource import Resource as RdflibResource
 
 from rdflib_plus.namespaces.define import (
     NAMESPACE_TO_PREFIX,
@@ -36,18 +36,18 @@ def parse_prefixed_iri(prefixed_iri: str) -> IRI:
     return iri
 
 
-def stringify_iri(iri: IRI) -> str:
+def stringify_iri(iri: IRI | RdflibResource) -> str:
     """Add prefix to IRI.
 
     Args:
-        iri (IRI):
+        iri (Resource | IRI):
             IRI to add prefix to.
 
     Returns:
         str: Prefixed IRI.
     """
 
-    # Stringify IRI
+    # Stringify Resource (into its IRI) or IRI
     iri = str(iri)
 
     # For every known namespace

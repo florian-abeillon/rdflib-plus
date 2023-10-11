@@ -107,7 +107,7 @@ class OrderedObject(Resource):
                 index -= len(self)
 
             # Raise an error
-            raise ValueError(f"Provided index '{index}' is not valid.")
+            raise ValueError(f"Index '{index}' is not valid.")
 
         return index
 

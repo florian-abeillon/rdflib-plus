@@ -1,7 +1,6 @@
 """RDF Property constructor"""
 
 import re
-import warnings
 from typing import Optional, Union
 
 from inflection import camelize
@@ -21,7 +20,6 @@ from rdflib_plus.models.rdf.rdfs_resource import (
     ResourceOrIri,
 )
 from rdflib_plus.models.utils.types import ConstraintsType, GraphType, LangType
-from rdflib_plus.namespaces import stringify_iri
 from rdflib_plus.utils import format_label
 
 # Define specific custom types
@@ -94,26 +92,8 @@ class Property(Class):
             constraints=constraints,
         )
 
-        # Initialize potential OWL Inverse property
-        self.inverse = None
-
-        # If Property can have an Inverse property
-        # Get its label
-        label_inverse = self._get_label_inverse()
-
-        if label_inverse:
-            # Build it
-            self.inverse = self._build_inverse(
-                graph,
-                label_inverse,
-                namespace=namespace,
-                super_property=super_property,
-                hierarchical_path=hierarchical_path,
-                lang=lang,
-            )
-
-            # Link Property to its inverse
-            self.add(OWL.inverseOf, self.inverse.iri)
+        # Set inverse property of Property
+        self.inverse = self._set_inverse_property()
 
     @staticmethod
     def _format_identifier(identifier: str) -> str:
@@ -147,7 +127,7 @@ class Property(Class):
 
         return None
 
-    def _build_inverse(
+    def _set_inverse_property(
         self,
         graph: GraphType,
         label: str,
@@ -155,8 +135,8 @@ class Property(Class):
         super_property: Optional[SuperPropertyType] = None,
         hierarchical_path: bool = DEFAULT_HIERARCHICAL_PATH,
         lang: LangType = DEFAULT_LANGUAGE,
-    ) -> "Property":
-        """Build potential inverse Property of Property
+    ) -> Optional["Property"]:
+        """Set potential inverse property of Property
 
         Args:
             graph (Graph | MultiGraph):
@@ -176,37 +156,47 @@ class Property(Class):
                 Inverse Property's language. Defaults to None.
 
         Returns:
-            Property: Inverse property.
+            Optional[Property]: Inverse property if any, otherwise None.
         """
 
-        # If a super-property is specified
-        if super_property is not None:
-            # Turn single super_property into list
-            if not isinstance(super_property, list):
-                super_property = [super_property]
+        # Initialize potential OWL inverse property
+        inverse = None
 
-            # Replace every super-property by its inverse
-            super_property = [
-                property_.inverse
-                for property_ in super_property
-                if isinstance(property_, Property)
-            ]
+        # Get label of potential inverse property
+        label_inverse = self._get_label_inverse()
 
-        # Create inverse property
-        inverse = Property(
-            graph,
-            label,
-            namespace=namespace,
-            super_property=super_property,
-            hierarchical_path=hierarchical_path,
-            lang=lang,
-        )
+        # If Property can have an inverse property
+        if label_inverse is not None:
+            # If a super-property is specified
+            if super_property is not None:
+                # Turn single super_property into list
+                if not isinstance(super_property, list):
+                    super_property = [super_property]
+
+                # Replace every super-property by its inverse
+                super_property = [
+                    property_.inverse
+                    for property_ in super_property
+                    if isinstance(property_, Property)
+                ]
+
+            # Create inverse property
+            inverse = Property(
+                graph,
+                label,
+                namespace=namespace,
+                super_property=super_property,
+                hierarchical_path=hierarchical_path,
+                lang=lang,
+            )
+
+            # Link Property to its inverse
+            self.add(OWL.inverseOf, inverse.iri)
 
         return inverse
 
     def __call__(self, *args, **kwargs) -> Resource:
         """Null function, as vanilla Property object cannot be called"""
 
-        # Raise warning and error
-        warnings.warn(f"Cannot call Property '{stringify_iri(self.iri)}'.")
-        raise NotImplementedError
+        # Raise an error
+        raise AttributeError(f"{self}: Cannot call non-n-ary Property.")

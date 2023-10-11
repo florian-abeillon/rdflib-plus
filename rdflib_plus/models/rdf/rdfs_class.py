@@ -21,7 +21,7 @@ from rdflib_plus.models.utils.types import (
     IdentifierType,
     LangType,
 )
-from rdflib_plus.namespaces import DEFAULT_NAMESPACE, stringify_iri
+from rdflib_plus.namespaces import DEFAULT_NAMESPACE
 from rdflib_plus.utils import format_label
 
 # Define specific custom type
@@ -47,6 +47,7 @@ class Class(Resource):
         self,
         graph: GraphType,
         label: str,
+        identifier_property: Optional[IRI] = None,
         namespace: Optional[Namespace] = None,
         super_class: Optional[SuperClassType] = None,
         hierarchical_path: bool = DEFAULT_HIERARCHICAL_PATH,
@@ -54,7 +55,6 @@ class Class(Resource):
         check_triples: bool = DEFAULT_CHECK_TRIPLES,
         bnode: bool = False,
         constraints: Optional[ConstraintsType] = None,
-        identifier_property: Optional[IRI] = None,
     ) -> None:
         """Initialize Class.
 
@@ -63,6 +63,9 @@ class Class(Resource):
                 Graph to search or create Class into.
             label (str):
                 Class's label.
+            identifier_property (Optional[IRI | Property], optional):
+                Class's specific identifier property.
+                Defaults to None.
             namespace (Optional[Namespace], optional):
                 Namespace to search or create Class into. Defaults to None.
             super_class (Optional[Class | IRI | list[Class | IRI]], optional):
@@ -81,18 +84,10 @@ class Class(Resource):
             constraints (Optional[dict[IRI, dict[str, Any]]], optional):
                 Class's specific constraints.
                 Defaults to None.
-            identifier_property (Optional[IRI | Property], optional):
-                Class's specific identifier property.
-                Defaults to None.
         """
 
         # Set whether instances of Class should be blank nodes
         self.bnode = bnode
-
-        # If a Class-specific identifier property is specified
-        if identifier_property is not None:
-            # Update it to the new value
-            self._identifier_property = identifier_property
 
         # Initialize parent hierarchy
         path = []
@@ -106,7 +101,7 @@ class Class(Resource):
                 path = (
                     super_class.path
                     if isinstance(super_class, Class)
-                    else super_class.fragment
+                    else [super_class.fragment]
                 )
 
             # Turn superclass into a list for convenience
@@ -117,60 +112,15 @@ class Class(Resource):
             graph,
             label=label,
             path=path,
+            identifier_property=identifier_property,
             namespace=namespace,
             lang=lang,
             check_triples=check_triples,
         )
 
-        # TODO: Put into methods
-
-        # Initialize instance constraints
-        constraints_instance = {}
-
-        # If class-specific constraints and at least one super-class
-        # are specified
-        if constraints is not None and super_class is not None:
-            # Initialize dictionary to collect super-classes' instance
-            # constraints
-            super_class_constraints = {}
-
-            # For every super-class
-            for class_ in super_class:
-                # Overlook IRI super-classes as they do not include constraints
-                if not isinstance(class_, Class):
-                    continue
-
-                # For every key-value pair of current super-class
-                for constraint, value in class_.items():
-                    # If current super-class has the same constraint as another
-                    # super-class (and the same value), and this constraint is
-                    # not overruled in class-specific constraints
-                    if (
-                        constraint in super_class_constraints
-                        and constraint not in constraints
-                        and value != super_class_constraints[constraint]
-                    ):
-                        # Raise a warning
-                        warnings.warn(
-                            f"Constraint '{constraint}' has conflicting values"
-                            " in at least two super-classes of "
-                            f"'{stringify_iri(self.iri)}'. Please harmonize the "
-                            "constraint values, or overrule it with "
-                            "class-specific constraint value."
-                        )
-
-                # Add current super-class's constraints
-                super_class_constraints |= class_.constraints_instance
-
-            # Update super-class's constraints with class-specific constraints
-            constraints_instance = {
-                **super_class_constraints,
-                **constraints,
-            }
-
-        # Update Resource's constraints with class-specific's
-        self.constraints_instance = Resource.update_constraints(
-            constraints_instance
+        # Set constraints of instances of Class
+        self.constraints_instance = self._get_constraints_instance(
+            constraints, super_class
         )
 
         # Create constructor to create Class's instances
@@ -219,6 +169,72 @@ class Class(Resource):
         """
 
         return camelize(format_label(identifier))
+
+    def _get_constraints_instance(
+        self,
+        constraints: Optional[ConstraintsType] = None,
+        super_class: Optional[SuperClassType] = None,
+    ) -> ConstraintsType:
+        """Set Class's 'constraints_instance' attribute.
+
+        Args:
+            constraints (Optional[dict[IRI, dict[str, Any]]], optional):
+                Class's specific constraints. Defaults to None.
+            super_class (Optional[list[Class | IRI]], optional):
+                Class's super-class. Defaults to None.
+        """
+
+        # Initialize instance constraints
+        constraints_instance = {}
+
+        # If class-specific constraints and at least one super-class
+        # are specified
+        if constraints is not None and super_class is not None:
+            # Initialize dictionary to collect
+            # super-classes' instance constraints
+            super_class_constraints = {}
+
+            # For every super-class
+            for class_ in super_class:
+                # Overlook IRI super-classes as they do not include constraints
+                if not isinstance(class_, Class):
+                    continue
+
+                # For every key-value pair of current super-class
+                for constraint, value in class_.items():
+                    # If current super-class has the same constraint as another
+                    # super-class (and the same value), and this constraint is
+                    # not overruled in class-specific constraints
+                    if (
+                        constraint in super_class_constraints
+                        and constraint not in constraints
+                        and value != super_class_constraints[constraint]
+                    ):
+                        # Raise a warning
+                        warnings.warn(
+                            f"""
+                            {self}: Constraint '{constraint}' has conflicting
+                            values in at least two super-classes. Please
+                            harmonize the constraint values, or overrule them
+                            by specifying a class-specific value.
+                            """
+                        )
+
+                # Add current super-class's constraints
+                super_class_constraints |= class_.constraints_instance
+
+            # Update super-class's constraints with class-specific constraints
+            constraints_instance = {
+                **super_class_constraints,
+                **constraints,
+            }
+
+        # Update Resource's constraints with class-specific's
+        constraints_instance = Resource.update_constraints(
+            constraints_instance
+        )
+
+        return constraints_instance
 
     def _build_instance_constructor(self) -> type:
         """Build Class's instance constructor.
@@ -278,18 +294,20 @@ class Class(Resource):
             if identifier is not None:
                 # Raise an error
                 raise ValueError(
-                    f"Trying to create instance of '{stringify_iri(self.iri)}' as a "
-                    f"blank node, but the identifier provided ('{identifier}') "
-                    "is not None."
+                    f"""
+                    {self}: Trying to create instance as a blank node,
+                    but an identifier is specified ('{identifier}').
+                    """
                 )
 
             # If a label was specified
             if label is not None:
                 # Raise an error
                 raise ValueError(
-                    f"Trying to create instance of '{stringify_iri(self.iri)}' as a "
-                    f"blank node, but the label provided ('{label}') is not None."
-                    "is not None."
+                    f"""
+                    {self}: Trying to create instance as a blank node,
+                    but a label is specified ('{label}').
+                    """
                 )
 
         # Create instance of Class

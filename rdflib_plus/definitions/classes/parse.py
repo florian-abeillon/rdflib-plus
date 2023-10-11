@@ -25,6 +25,27 @@ def parse_class_properties(properties: list[str]) -> list[IRI]:
     return [parse_prefixed_iri(property_) for property_ in properties]
 
 
+def parse_identifier_property(
+    identifier_property: str | list[str],
+) -> IRI | list[IRI]:
+    """Parse a class's identifier property/ies.
+
+    Args:
+        identifier_property (str | list[str]):
+            Class's specific identifier property or properties.
+
+    Returns:
+        IRI | list[IRI]: Parsed identifier property/ies.
+    """
+
+    # If there are several identifier properties
+    if isinstance(identifier_property, list):
+        # Parse each one of them
+        return parse_class_properties(identifier_property)
+
+    return parse_prefixed_iri(identifier_property)
+
+
 def parse_class_constraints(
     constraints: dict[str, str | int]
 ) -> dict[str, IRI | int]:
@@ -46,7 +67,7 @@ def parse_class_constraints(
 PARSING_PROCESSES_CLASS = {
     "bnode": None,
     "constraints": parse_class_constraints,
-    "identifier_property": parse_prefixed_iri,
+    "identifier_property": parse_identifier_property,
     "properties": parse_class_properties,
     "super_class": parse_prefixed_iri,
 }

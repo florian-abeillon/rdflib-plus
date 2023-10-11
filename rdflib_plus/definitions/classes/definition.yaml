@@ -4,6 +4,7 @@ rdfs:Resource:
   identifier_property: dcterms:identifier
   properties:
     - dcterms:identifier
+    - dcterms:source
     - rdf:type
     - skos:prefLabel
     - skos:altLabel

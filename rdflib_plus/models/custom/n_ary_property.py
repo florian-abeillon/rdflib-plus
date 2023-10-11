@@ -160,9 +160,11 @@ class NaryProperty(Property):
         if not self.bnode:
             # Raise an error
             raise ValueError(
-                f"{stringify_iri(self.iri)}: Trying to create instance of "
-                "non-n-ary property. Please use Property as is to link resources "
-                "(no need to create an instance of it)."
+                f"""
+                {self}: Trying to create instance of non-n-ary property.
+                Please use Property as is to link resources (no need to create
+                an instance of it).
+                """
             )
 
         Class.__call__(self, graph=graph, check_triples=check_triples)
