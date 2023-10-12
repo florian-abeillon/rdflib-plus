@@ -7,6 +7,11 @@ dcterms:identifier:
       # - xsd:string
     # minCount: 1         # TODO: Not blank nodes
 
+dcterms:source:
+
+  constraints:
+    datatype: xsd:anyURI
+
 rdf:type:
 
   constraints:

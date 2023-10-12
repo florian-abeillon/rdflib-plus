@@ -1,5 +1,6 @@
 """Function to build namespaces"""
 
+from pathlib import Path
 from typing import Optional
 
 from rdflib import Namespace
@@ -63,7 +64,7 @@ def create_namespace(
     if path is not None:
         # Clean it, then add it to IRI
         path = legalize_for_iri(path)
-        iri += f"{path}/"
+        iri += f"{Path(path)}/"
 
     # Create namespace from IRI
     namespace = Namespace(iri)

@@ -19,6 +19,13 @@ SHAPES_SUBDOMAIN: str = "shapes"
 # Default domain of the default and shape namespaces
 DEFAULT_DOMAIN: str = "example.com"
 
+# Define default file formats for SimpleGraph
+DEFAULT_FORMAT_FAST_SIMPLEGRAPH = "ntriples"
+DEFAULT_FORMAT_READABLE_SIMPLEGRAPH = "turtle"
+# Define default file formats for MultiGraph
+DEFAULT_FORMAT_FAST_MULTIGRAPH = "nquads"
+DEFAULT_FORMAT_READABLE_MULTIGRAPH = "trig"
+
 # Illegal characters in various parts of IRI
 # Source: https://datatracker.ietf.org/doc/html/rfc3986#section-2.2
 ILLEGAL_CHARS_OFFICIAL: str = ":/?#[]@!$&'()*+,;="

@@ -1,6 +1,6 @@
 """Import custom graph constructors"""
 
-from rdflib_plus.graphs.graph import Graph
 from rdflib_plus.graphs.multi_graph import MultiGraph
+from rdflib_plus.graphs.simple_graph import SimpleGraph
 
-__all__ = ["Graph", "MultiGraph"]
+__all__ = ["SimpleGraph", "MultiGraph"]

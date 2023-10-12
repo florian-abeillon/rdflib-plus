@@ -212,12 +212,11 @@ class Class(Resource):
                     ):
                         # Raise a warning
                         warnings.warn(
-                            f"""
-                            {self}: Constraint '{constraint}' has conflicting
-                            values in at least two super-classes. Please
-                            harmonize the constraint values, or overrule them
-                            by specifying a class-specific value.
-                            """
+                            f"{self}: Constraint '{constraint}' has "
+                            "conflicting values in at least two super-classes."
+                            " Please harmonize the constraint values, or "
+                            "overrule them by specifying a class-specific "
+                            "value."
                         )
 
                 # Add current super-class's constraints
@@ -244,7 +243,7 @@ class Class(Resource):
         """
 
         return type(
-            f"{self.id_}Instance",
+            f"{self.id}Instance",
             (Resource,),
             {
                 "_type": self,
@@ -294,20 +293,16 @@ class Class(Resource):
             if identifier is not None:
                 # Raise an error
                 raise ValueError(
-                    f"""
-                    {self}: Trying to create instance as a blank node,
-                    but an identifier is specified ('{identifier}').
-                    """
+                    f"{self}: Trying to create instance as a blank node, "
+                    f"but an identifier is specified ('{identifier}')."
                 )
 
             # If a label was specified
             if label is not None:
                 # Raise an error
                 raise ValueError(
-                    f"""
-                    {self}: Trying to create instance as a blank node,
-                    but a label is specified ('{label}').
-                    """
+                    f"{self}: Trying to create instance as a blank node, "
+                    f"but a label is specified ('{label}')."
                 )
 
         # Create instance of Class

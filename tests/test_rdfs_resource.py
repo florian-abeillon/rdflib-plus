@@ -1,10 +1,10 @@
 """Test RDFS Resource constructor"""
 
 import pytest
-from rdflib import DCTERMS, RDF, RDFS, SKOS, XSD, Graph, Literal
+from rdflib import DCTERMS, RDF, RDFS, SKOS, XSD, Literal, Namespace
 from rdflib import URIRef as IRI
 
-from rdflib_plus import Resource
+from rdflib_plus import MultiGraph, Resource, SimpleGraph
 
 
 @pytest.mark.parametrize(
@@ -20,7 +20,7 @@ def test_init_with_identifier(identifier: str, iri: IRI):
     """Test Resource object creation with identifier."""
 
     # Initialize graph
-    graph = Graph()
+    graph = SimpleGraph()
 
     # Create Resource object
     resource = Resource(graph, identifier=identifier)
@@ -70,7 +70,7 @@ def test_init_with_label(label: str, iri: IRI):
     """Test Resource object creation with label."""
 
     # Initialize graph
-    graph = Graph()
+    graph = SimpleGraph()
 
     # Create Resource object
     resource = Resource(graph, label=label)
@@ -127,7 +127,7 @@ def test_init_with_label_and_lang(label: str, lang: str, iri: IRI):
     """Test Resource object creation with label and language."""
 
     # Initialize graph
-    graph = Graph()
+    graph = SimpleGraph()
 
     # Create Resource object
     resource = Resource(graph, label=label, lang=lang)
@@ -147,7 +147,7 @@ def test_init_with_label_and_lang(label: str, lang: str, iri: IRI):
         (
             iri,
             DCTERMS.identifier,
-            Literal(label, datatype=XSD.string),
+            Literal(label, lang=lang),
         ),
         (
             iri,
@@ -175,7 +175,7 @@ def test_init_with_identifier_and_label(identifier: str, label: str, iri: IRI):
     """Test Resource object creation with identifier and label."""
 
     # Initialize graph
-    graph = Graph()
+    graph = SimpleGraph()
 
     # Create Resource object
     resource = Resource(graph, identifier=identifier, label=label)
@@ -219,7 +219,7 @@ def test_init_with_iri(iri: IRI):
     """Test Resource object creation with iri."""
 
     # Initialize graph
-    graph = Graph()
+    graph = SimpleGraph()
 
     # Create Resource object
     resource = Resource(graph, iri=iri)
@@ -229,16 +229,24 @@ def test_init_with_iri(iri: IRI):
     assert resource.path == ["Resource"]
     assert resource.type == RDFS.Resource
 
-    # Check that no triple was added to the graph
-    # (Resource creation with IRI only to retrieve objects)
-    assert len(graph) == 0
+    # Check adequate triples are in graph
+    triples = [
+        (
+            resource.iri,
+            RDF.type,
+            RDFS.Resource,
+        ),
+    ]
+    assert len(graph) == len(triples)
+    for triple in triples:
+        assert triple in graph
 
 
 def test_init_blank_node():
     """Test blank node creation."""
 
     # Initialize graph
-    graph = Graph()
+    graph = SimpleGraph()
 
     # Create Resource object
     resource = Resource(graph)
@@ -280,7 +288,7 @@ def test_init_with_path(identifier: str, path: list[str], iri: IRI):
     """Test Resource object creation with a path."""
 
     # Initialize graph
-    graph = Graph()
+    graph = SimpleGraph()
 
     # Create Resource object
     resource = Resource(graph, identifier=identifier, path=path)
@@ -308,9 +316,62 @@ def test_init_with_path(identifier: str, path: list[str], iri: IRI):
         assert triple in graph
 
 
-def test_init_with_namespace():
+@pytest.mark.parametrize(
+    "identifier,namespace,iri",
+    [
+        (
+            1,
+            Namespace("http://special.example.com/"),
+            IRI("http://special.example.com/Resource#1"),
+        ),
+        (
+            "id",
+            Namespace("http://special.example.com"),
+            IRI("http://special.example.com/Resource#id"),
+        ),
+    ],
+)
+def test_init_with_namespace(identifier: str, namespace: Namespace, iri: IRI):
     """Test Resource object creation within a namespace."""
-    pass
+
+    # Initialize graph
+    graph = MultiGraph()
+
+    # Create Resource object
+    resource = Resource(graph, identifier=identifier, namespace=namespace)
+
+    print(graph.serialize())
+
+    # Check attributes
+    assert resource.iri == iri
+    assert resource.path == ["Resource"]
+    assert resource.type == RDFS.Resource
+
+    # Format namespace
+    if str(namespace)[-1] != "/":
+        namespace = Namespace(f"{namespace}/")
+
+    # Check adequate triples are in graph
+    triples = [
+        (
+            iri,
+            RDF.type,
+            RDFS.Resource,
+        ),
+        (
+            iri,
+            DCTERMS.identifier,
+            Literal(identifier, datatype=XSD.string),
+        ),
+        (
+            iri,
+            DCTERMS.source,
+            IRI(namespace),
+        ),
+    ]
+    assert len(graph) == len(triples)
+    for triple in triples:
+        assert triple in graph
 
 
 def test_init_with_check_triples():

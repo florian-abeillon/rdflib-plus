@@ -116,12 +116,12 @@ class Property(Class):
         """
 
         # Look for patterns like "has..." in Property's label
-        res = re.match(r"has([A-Z]\w*)$", self.id_)
+        res = re.match(r"has([A-Z]\w*)$", self.id)
         if res:
             return f"is{res.group(1)}Of"
 
         # Look for patterns like "is...Of" in Property's label
-        res = re.match(r"is([A-Z]\w*)Of$", self.id_)
+        res = re.match(r"is([A-Z]\w*)Of$", self.id)
         if res:
             return f"has{res.group(1)}"
 

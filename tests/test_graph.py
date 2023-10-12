@@ -4,14 +4,14 @@ from typing import Callable
 
 from rdflib import RDF, RDFS
 
-from rdflib_plus import Graph
+from rdflib_plus import SimpleGraph
 
 
 def test_init():
     """Test Graph object creation."""
 
     # Initialize graph
-    graph = Graph()
+    graph = SimpleGraph()
 
     # Check attributes
     assert hasattr(graph, "Resource")
@@ -43,7 +43,7 @@ def test_add_model():
     A = type("A", (), {"__init__": __init__})
 
     # Initialize graph
-    graph = Graph()
+    graph = SimpleGraph()
 
     # Add constructor
     graph.add_model(A)
@@ -66,7 +66,7 @@ def test_add_models():
     C = type("C", (), {"__init__": __init__})
 
     # Initialize graph
-    graph = Graph()
+    graph = SimpleGraph()
 
     # Add constructors
     models = [A, B, C]

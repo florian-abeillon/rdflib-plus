@@ -4,7 +4,7 @@ from rdflib_plus.definitions import (
     parse_class_definition_file,
     parse_property_definition_file,
 )
-from rdflib_plus.graphs import Graph, MultiGraph
+from rdflib_plus.graphs import MultiGraph, SimpleGraph
 from rdflib_plus.models import (
     Alt,
     Bag,
@@ -37,7 +37,6 @@ __all__ = [
     "Bag",
     "Class",
     "FunctionalProperty",
-    "Graph",
     "InverseFunctionalProperty",
     "List",
     "MultiGraph",
@@ -47,6 +46,7 @@ __all__ = [
     "PropertyWithAttributes",
     "Resource",
     "Seq",
+    "SimpleGraph",
     "SymmetricProperty",
     "TransitiveProperty",
     "DEFAULT_NAMESPACE",
