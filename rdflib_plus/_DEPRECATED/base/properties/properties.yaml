@@ -1,0 +1,50 @@
+
+dcterms:identifier:
+
+  constraints:
+    datatype: 
+      - xsd:integer
+      - xsd:string
+    minCount: 1
+    # maxCount: 1
+
+
+rdf:type:
+
+  constraints:
+    # TODO: Raises errors
+    # class:    rdfs:Class
+    minCount: 1
+
+
+skos:prefLabel:
+
+  constraints:
+    # TODO: Raises errors
+    # datatype: xsd:string
+    # minCount: 1
+    maxCount: 1
+
+
+skos:altLabel:
+
+  constraints: {}
+  # constraints:
+  #   # TODO: Raises errors
+  #   datatype: xsd:string
+
+
+rdfs:subClassOf:
+
+  constraints: {}
+  # constraints:
+  #   # TODO: Raises errors
+  #   class: rdfs:Class
+
+
+rdfs:subPropertyOf:
+
+  constraints: {}
+  # constraints:
+  #   # TODO: Raises errors
+  #   class: rdf:Property

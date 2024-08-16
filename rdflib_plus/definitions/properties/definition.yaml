@@ -2,9 +2,9 @@
 dcterms:identifier:
 
   constraints:
-    datatype: xsd:string
-      # - xsd:integer     # TODO: Do we want integers? Or only strings?
-      # - xsd:string
+    datatype:
+      - xsd:integer
+      - xsd:string
     # minCount: 1         # TODO: Not blank nodes
 
 dcterms:source:
@@ -18,20 +18,22 @@ rdf:type:
     class: rdfs:Class
     minCount: 1
 
-skos:prefLabel:
+rdfs:label:
 
   constraints:
     datatype:
       - xsd:string
       - rdf:langString
-    # maxCount: 1         # TODO: maxCount by language
+
+skos:prefLabel:
+
+  super_property: rdfs:label
+  # constraints:
+  #   maxCount: 1         # TODO: maxCount by language
 
 skos:altLabel:
 
-  constraints:
-    datatype:
-      - xsd:string
-      - rdf:langString
+  super_property: rdfs:label
 
 rdfs:subClassOf:
 

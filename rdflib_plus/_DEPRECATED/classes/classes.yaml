@@ -1,0 +1,344 @@
+
+# Deprecated ?
+# - ActionMechanism
+# - ActiveAmm
+# - Addiction
+# - AdministrationMode
+# - Composition
+# - Conservation
+# - Contraindication
+# - Driving
+# - Duration
+# - ForgottenDrug
+# - ForgottenPill
+# - Frequency
+# - Geriatrics
+# - Intent
+# - LiverImpairment
+# - Overdose
+# - Packaging
+# - Patch
+# - Pediatrics
+# - Pharmacodynamy
+# - Pharmacokinetics
+# - Posology
+# - Precaution
+# - Pregnancy
+# - Princeps
+# - RdfsClass
+# - RenalImpairment
+# - Sport
+
+AdministrationRoute:
+
+  # TODO: Add rdfs:comment
+  # rdfs:comment: Class for route of administration
+
+  properties:
+    - isFormOf
+
+  constraints:
+    isFormOf: AdministrationRoute
+
+
+AdverseEffect:
+
+  properties:
+    - ctcaeMeddraCode
+    - cui
+    - fdbDxid
+    - isImportant
+    - patientLabel
+    - scholzThcode
+  
+
+ALD:
+
+  properties:
+    - aldCode
+
+  label_id: aldCode
+  
+
+# ASMR:
+
+#   properties:
+#     - description
+#     - level
+
+
+Atc:
+
+  properties:
+    - atcCode
+    - isFormOf
+
+  constraints:
+    isFormOf: Atc
+
+  label_id: atcCode
+
+
+BiosimilarClass:
+
+  properties:
+    - hasBiosimilarReference
+
+
+BrandedDrug:
+
+  properties:
+    - aic
+    - ammDate
+    - ammProcedure
+    - ammStatus
+    - apid
+    - appearanceFrequency
+    - atuStartDate
+    - atuType
+    - cis
+    - commercializationStatus
+    - europeanAuthorizationStatus
+    - fdbId
+    - fullySpelledLabel
+    - hasALD
+    - hasAdministrationRoute
+    - hasAsmr
+    - hasAtc
+    - hasBrandName
+    - hasClinicalDrug
+    - hasCombinedIngredient
+    - hasDoseForm
+    # - hasDosedActiveSubstance
+    - hasDosedPharmaceuticalIngredient
+    - hasExcipient
+    - hasFormedComponent
+    - hasIndication
+    - hasLaboratory
+    - hasMeasuredAdverseEffect
+    - hasPackaging                        # hasPackagedBrandedDrug
+    - hasPrescriptionCondition
+    - hasPrinceps
+    - hasRxNorm
+    - hasShortName
+    - hasSmr
+    - isAtu
+    - isBreakable
+    - isExceptionalDrug
+    - isHomeopathy
+    - isRetrocedable
+    - isUnderSurveillance
+    - labelDose
+    - labelForm
+    - maxReimbursementRatePct
+    - maxUcdPrice
+    - maxUnitPrice
+    - minUcdPrice
+    - minUnitPrice
+    - ndc
+    - nroDefinitivo
+    - rcp
+    - sdc
+    - setId
+    - stockAlert
+    - ucd13
+    - ucd7
+
+  label_id: 
+    de-de: sdc
+    es-es: nroDefinitivo
+    fr-fr: cis
+    en-gb: apid
+    it-it: aic
+    en-us: ndc
+
+
+BrandName: {}
+
+
+ClinicalDrug:
+
+ properties:
+    - gcnSeqno
+    - hasAdministrationRoute
+    - hasAtc
+    - hasCombinedIngredient
+    - hasDoseForm
+    # - hasDosedActiveSubstance
+    - hasDosedPharmaceuticalIngredient
+    - hasMeasuredAdverseEffect
+    - hasRxNorm
+    - medicabaseId
+
+
+CombinedIngredient:
+
+  properties:
+    - hasAtc
+    - hasIndication
+    - hasIngredient
+
+
+DDPredEntry:
+
+  properties:
+    - ddPredEntryType
+
+
+Dose:
+
+  properties:
+    - unit
+    - value
+
+
+DosedActiveSubstance:
+
+  bnode: True
+
+  properties:
+    - rdf:value
+    - hasDosedTherapeuticMoiety
+
+
+# DosedPharmaceuticalIngredient:
+DosedMolecule:
+
+  bnode: True
+
+  properties:
+    - hasDose
+    - hasIngredient
+
+
+DoseForm: {}
+
+
+# Molecule
+# Excipient: {}
+
+
+FormedComponent:
+
+  properties:
+    - hasAdministrationRoute
+    - hasIngredient
+
+
+Indication:
+
+  properties:
+    - cui
+
+
+Interaction:
+
+  bnode: True
+
+  properties:
+    - affectionType
+    - associationDiscouraged
+    - contraindication
+    - hasParticipant
+    - isPharmacodynamics
+    - isPharmacokynetics
+    - mecanism
+    - precautionOfUse
+    - toConsider
+
+
+Laboratory: {}
+
+
+MeasuredAdverseEffect:
+
+  properties:
+    - frequency
+    - hasAdverseEffect
+    - relevance
+
+
+PackagedBrandedDrug:
+
+  properties:
+    - administrationStatus
+    - agreedForOrganizations
+    - aic
+    - amppid
+    - cip13
+    - cip7
+    - codNacion
+    - commercializationDate
+    - commercializationStatus
+    - dispensationFee
+    - htPrice
+    - isExceptionalDrug
+    - packageDoseLabel
+    - packageDoseUnit
+    - packageDoseValue
+    - packageForm
+    - packageNbUnits
+    - packagingForm
+    - preDispensationFeePrice
+    - reimbursementRate
+    - totalPrice
+
+
+# PharmaceuticalIngredient:
+Molecule:
+
+  properties:
+    - cas
+    - chemblId
+    - formula
+    - hasAtc
+    - isFormOf
+    - hasDDPredEntry
+    # - ingredientCode
+    - code
+    - inn
+    - meshId
+    - pubchemId
+    - rxcui
+    - unii
+    - wikipediaId
+
+  constraints:
+    isFormOf: Molecule
+
+
+PrescriptionCondition:
+
+  properties:
+    - prescriptionConditionCategory
+    - prescriptionConditionSubcategory
+
+
+RxNorm:
+
+  properties:
+    - rxConcept
+    - rxcui
+
+
+ShortName:
+
+  properties:
+    - appearanceFrequency
+
+
+SMR:
+
+  properties:
+    - description
+    - level
+
+
+TherapeuticClass: {}
+
+
+TherapeuticStrategy:
+
+  properties:
+    - couchdbUrl
+    - cui

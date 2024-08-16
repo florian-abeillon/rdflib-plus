@@ -24,7 +24,7 @@ def copy_key_value_if_exists(
             Dictionary in which to look key in.
         dict_to (dict):
             Dictionary where key-value should be added.
-        process (Optional[Callable], optional):
+        process (Callable | None, optional):
             Process to apply to value. Defaults to None.
     """
 
@@ -48,7 +48,7 @@ def parse_definition_file(
         Args:
             path (str):
                 Path to definition file to parse.
-            definition_fields (dict[str, Optional[Callable]]):
+            definition_fields (dict[str, Callable | None]):
                 Possible definition fields, and their associated process
                 to apply to their values.
 
@@ -93,7 +93,7 @@ def parse_constraints(
             Constraints to parse.
         is_class (bool, optional):
             Whether constraints are a class's. Defaults to False.
-        constraint_processes (Optional[dict[str, Callable]], optional):
+        constraint_processes (dict[str, Callable] | None, optional):
             Dictionary of constraints to their associated process.
 
     Returns:

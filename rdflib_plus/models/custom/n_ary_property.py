@@ -18,7 +18,7 @@ from rdflib_plus.models.rdf.rdfs_resource import (
     ResourceOrIri,
 )
 from rdflib_plus.models.utils.types import ConstraintsType, GraphType, LangType
-from rdflib_plus.namespaces import stringify_iri
+from rdflib_plus.namespaces import DEFAULT_NAMESPACE
 
 # Define specific custom types
 SuperPropertyType = Property | IRI | list[Property | IRI]
@@ -57,6 +57,9 @@ class ResourcePair(tuple):
 class NaryProperty(Property):
     """n-ary Property constructor"""
 
+    # NaryProperty's RDF type
+    _type: ResourceOrIri = DEFAULT_NAMESPACE["NaryProperty"]
+
     def __init__(
         self,
         graph: GraphType,
@@ -75,20 +78,22 @@ class NaryProperty(Property):
                 Graph to search or create Property into.
             label (str):
                 Property's label.
-            namespace (Optional[Namespace], optional):
+            namespace (Namespace | None, optional):
                 Namespace to search or create Property into. Defaults to None.
-            super_property (Optional[Property | IRI | list[Property | IRI]],
-                            optional):
+            super_property (
+                Property | IRI | list[Property | IRI] | None,
+                optional
+            ):
                 Property's super-property. Defaults to None.
             hierarchical_path (bool, optional):
                 Whether to include Class's parent hierarchy in its path.
                 Defaults to DEFAULT_HIERARCHICAL_PATH.
-            lang (Optional[str], optional):
+            lang (str | None, optional):
                 Property's language. Defaults to DEFAULT_LANGUAGE.
             check_triples (bool, optional):
                 Whether to check triples that are added or set using Property.
                 Defaults to DEFAULT_CHECK_TRIPLES.
-            constraints (Optional[dict[IRI, dict[str, Any]]], optional):
+            constraints (dict[IRI, dict[str, Any]] | None, optional):
                 Class's specific constraints.
                 Defaults to None.
         """
@@ -127,28 +132,28 @@ class NaryProperty(Property):
 
         Args:
             incoming (
-                Optional[list[
+                list[
                     tuple[Resource | IRI, Resource | IRI | Literal | Any] |
                     tuple[Resource | IRI, Resource | IRI | Literal | Any, bool]
-                ]],
+                ] | None,
                 optional
             ):
                 Subject and predicate of triple to add to instance,
                 with indication whether to add (default behavior) or to set it.
                 Defaults to None.
             outgoing (
-                Optional[list[
+                list[
                     tuple[Resource | IRI, Resource | IRI | Literal | Any] |
                     tuple[Resource | IRI, Resource | IRI | Literal | Any, bool]
-                ]],
+                ] | None,
                 optional
             ):
                 Predicate and object of triple to add from instance,
                 with indication whether to add (default behavior) or to set it.
                 Defaults to None.
-            graph (Optional[Graph | MultiGraph], optional):
+            graph (Graph | MultiGraph | None, optional):
                 Graph to search or create instance into. Defaults to None.
-            check_triples (Optional[bool], optional):
+            check_triples (bool | None, optional):
                 Whether to check triples that are added or set using Resource.
                 Defaults to None.
 

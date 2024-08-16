@@ -1,0 +1,10 @@
+
+PREFIXED_IRI_OF_PROPERTY:
+
+  super_property: PREFIXED_IRI_OF_SUPERPROPERTY (optional)
+
+  constraints:
+    class: PREFIXED_CLASS_OF_OBJECT (possibly without prefix, if defined in default namespace) (optional)
+    datatype: PREFIXED_DATATYPE_OF_OBJECT (usually with 'xsd' prefix) or [ POSSIBLE_PREFIXED_DATATYPE_1, POSSIBLE_PREFIXED_DATATYPE_2, ... ] (optional)
+    minCount: POSITIVE_INTEGER (optional)
+    maxCount: POSITIVE_INTEGER (optional)

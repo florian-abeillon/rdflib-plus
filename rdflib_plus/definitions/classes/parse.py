@@ -81,7 +81,7 @@ def parse_class_definition_file(
         Args:
             path (str):
                 Path to Class definition file to parse.
-            properties (Optional[dict], optional):
+            properties (dict | None, optional):
                 Parsed Class definition dictionary. Defaults to None.
 
     Returns:
@@ -111,7 +111,7 @@ def parse_class_definition_file(
                 class_constraints[property_iri] = (
                     class_constraints[property_iri]
                     if property_iri in class_constraints
-                    else properties[property_iri]["constraints"]
+                    else properties[property_iri].get("constraints", {})
                 )
 
         # Update class's property constraints

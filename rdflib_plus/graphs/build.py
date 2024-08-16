@@ -25,7 +25,7 @@ def build_custom_graph(
             File format to serialize graph in for faster saves/loads.
         format_readable (str):
             File format to serialize graph in a readable way.
-        additional_methods (Optional[list[Callable]], optional):
+        additional_methods (list[Callable] | None, optional):
             Additional methods to add to the custom graph constructor.
             Defaults to None.
 
@@ -116,7 +116,7 @@ def build_custom_graph(
                 fast (bool, optional):
                     Whether to save Graph in a format that is faster to parse
                     and serialize. Defaults to False.
-                encoding (Optional[str], optional):
+                encoding (str | None, optional):
                     Encoding to use when serializing Graph. Defaults to None.
             """
 

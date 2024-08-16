@@ -10,6 +10,8 @@ DEFAULT_HIERARCHICAL_PATH: bool = True
 DEFAULT_LANGUAGE: Optional[str] = None
 # Prefix to use for default namespace
 DEFAULT_PREFIX: str = ""
+# Separator to use in IRI between the path and the identifier
+DEFAULT_SEPARATOR: str = "#"
 
 # Scheme of the default namespaces
 DEFAULT_SCHEME: str = "http"

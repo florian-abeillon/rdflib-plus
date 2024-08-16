@@ -18,11 +18,11 @@ ILLEGAL_CHARS_PERCENT_ENCODED = {
 }
 
 
-def legalize_for_iri(text: str, authority: bool = False) -> str:
+def legalize_for_iri(identifier: str | int, authority: bool = False) -> str:
     """Make text legal for IRI use.
 
     Args:
-        text (str):
+        text (str | int):
             Text to be used in IRI.
         authority (bool, optional):
             Whether text will be used as authority of an IRI.
@@ -30,6 +30,9 @@ def legalize_for_iri(text: str, authority: bool = False) -> str:
     Returns:
         str: Text where any illegal character is percent-encoded.
     """
+
+    # Stringify identifier
+    identifier = str(identifier)
 
     # For every IRI illegal character
     for char, char_encoded in ILLEGAL_CHARS_PERCENT_ENCODED.items():
@@ -40,9 +43,9 @@ def legalize_for_iri(text: str, authority: bool = False) -> str:
             continue
 
         # Replace the character by its percent-encoding
-        text = text.replace(char, char_encoded)
+        identifier = identifier.replace(char, char_encoded)
 
-    return text
+    return identifier
 
 
 def format_label(label: str) -> str:
@@ -61,7 +64,7 @@ def format_label(label: str) -> str:
     # Even after calling camelize()
     label = re.sub(r"(?<=[A-Z])(?=[A-Z])", "_", label)
 
-    # Remove punctuation as first character
+    # Remove potential punctuation as first character
     label = re.sub(r"^[\s\_\-]", "", label)
 
     # Turn punctuation into underscores

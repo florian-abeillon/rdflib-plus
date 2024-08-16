@@ -40,24 +40,26 @@ rdf:List:
 owl:Ontology:
 
   super_class: rdfs:Resource
+  identifier_property: rdfs:label
   properties:
+    - rdfs:label
     - rdfs:comment
     - owl:versionInfo
     - owl:priorVersion
     - owl:imports
 
-owl:FunctionalProperty:
+# owl:FunctionalProperty:
 
-  super_class: rdf:Property
+#   super_class: rdf:Property
 
-owl:InverseFunctionalProperty:
+# owl:InverseFunctionalProperty:
 
-  super_class: rdf:Property
+#   super_class: rdf:Property
 
-owl:SymmetricProperty:
+# owl:SymmetricProperty:
 
-  super_class: rdf:Property
+#   super_class: rdf:Property
 
-owl:TransitiveProperty:
+# owl:TransitiveProperty:
 
-  super_class: rdf:Property
+#   super_class: rdf:Property

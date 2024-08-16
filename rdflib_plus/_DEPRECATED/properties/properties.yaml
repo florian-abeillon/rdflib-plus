@@ -1,0 +1,687 @@
+
+# Deprecated?
+# - cim10
+# - couchdbViewUrl
+# - hasActiveAmm
+# - hasAddiction
+# - hasAdministrationMode
+# - hasComposition
+# - hasConservation
+# - hasContraindication
+# - hasDriving
+# - hasDuration
+# - hasForgottenDrug
+# - hasForgottenPill
+# - hasFrequency
+# - hasGeriatrics
+# - hasMedication
+# - hasNdc
+# - hasOverdose
+# - hasPatch
+# - hasPediatrics
+# - hasPharmacodynamy
+# - hasPharmacokinetics
+# - hasPosology
+# - hasPrecaution
+# - hasPregnancy
+# - hasLiverImpairment
+# - hasRenalImpairment
+# - hasSetId
+# - hasSport
+# - preDispensationFeePrice
+# - medid
+# - nbBreakableParts
+
+administrationStatus:
+  constraints:
+    datatype: xsd:string
+
+
+affectionType:
+  constraints:
+    datatype: xsd:string
+
+
+agreedForOrganizations:
+  constraints:
+    datatype: xsd:boolean
+
+
+aic:
+  superproperty: dcterms:identifier
+  constraints:
+    datatype: xsd:integer
+    # datatype: xsd:string
+
+
+aldCode:
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+
+
+ammDate:
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:date
+  
+
+ammProcedure:
+  constraints:
+    datatype: xsd:string
+  
+
+ammStatus:
+  constraints:
+    datatype: xsd:string
+  
+
+amppid:
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+apid:
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+appearanceFrequency:
+  constraints:
+    datatype: xsd:double
+  
+
+associationDiscouraged:
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+atcCode:
+  # superproperty: dcterms:identifier
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+atuType:
+  constraints:
+    datatype: xsd:string
+  
+
+cas:
+  constraints:
+    datatype: xsd:string
+  
+
+chemblId:
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+cip13:
+  superproperty: dcterms:identifier
+  constraints:
+    datatype: xsd:integer
+  
+
+cip7:
+  superproperty: dcterms:identifier
+  constraints:
+    datatype: xsd:integer
+  
+
+cis:
+  superproperty: dcterms:identifier
+  constraints:
+    datatype: xsd:integer
+  
+
+codNacion:
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+commercializationDate:
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:date
+  
+
+commercializationStatus:
+  constraints:
+    datatype: xsd:string
+  
+
+contraindication:
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+couchdbUrl:
+  constraints:
+    datatype: xsd:string
+  
+
+ctcaeMeddraCode:
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+cui:
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+ddPredEntryType:
+  constraints:
+    datatype: xsd:string
+  
+
+description:
+  constraints:
+    datatype: xsd:string
+  
+
+dispensationFee:
+  constraints:
+    datatype: xsd:float
+  
+
+europeanAuthorizationStatus:
+  constraints:
+    datatype: xsd:string
+  
+
+fdbDxid:
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+fdbId:
+  superproperty: dcterms:identifier
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+
+
+formula:
+  constraints:
+    datatype: xsd:string
+  
+
+frequency:
+  constraints:
+    datatype: xsd:double
+  
+
+fullySpelledLabel:
+  superproperty: rdfs:label
+  constraints:
+    datatype: xsd:string
+  
+
+gcnSeqno:
+  constraints:
+    datatype: xsd:string
+  
+
+hasAdministrationRoute:
+  constraints:
+    class: :AdministrationRoute
+  
+
+hasAdverseEffect:
+  constraints:
+    class: :AdverseEffect
+  
+
+hasAsmr:
+  constraints:
+    class: :Asmr
+  
+
+hasAtc:
+  constraints:
+    class: :Atc
+  
+
+hasALD:
+  constraints:
+    class: :ALD
+  
+
+hasBiosimilarReference:
+  constraints:
+    class: :BrandedDrug
+  
+
+hasBrandName:
+  constraints:
+    class: :BrandName
+  
+
+hasClinicalDrug:
+  constraints:
+    class: :ClinicalDrug
+  
+
+hasCombinedIngredient:
+  constraints:
+    class: :CombinedIngredient
+  
+
+hasDDPredEntry:
+  constraints:
+    class:    :DDPredEntry
+  
+
+hasDose:
+  constraints:
+    class: :Dose
+  
+
+hasDosedActiveSubstance:
+  constraints:
+    class: :DosedActiveSubstance
+  
+
+hasDosedTherapeuticMoiety:
+  constraints:
+    class: :DosedMolecule
+  
+
+hasDoseForm:
+  constraints:
+    class: :DoseForm
+  
+
+hasExcipient:
+  constraints:
+    class: :Molecule
+  
+
+hasFormedComponent:
+  constraints:
+    class: :FormedComponent
+  
+
+hasIndication:
+  constraints:
+    class: :Indication
+  
+
+hasMolecule:
+  constraints:
+    class: :Molecule
+  
+
+hasLaboratory:
+  constraints:
+    class: :Laboratory
+  
+
+hasMeasuredAdverseEffect:
+  constraints:
+    class: :MeasuredAdverseEffect
+  
+
+hasPackaging:
+  constraints:
+    class: :PackagedBrandedDrug
+  
+
+hasParticipant:
+  constraints:
+    class: 
+      - :Molecule
+      - :TherapeuticClass
+    minCount: 2
+    maxCount: 2
+  
+
+hasPrescriptionCondition:
+  constraints:
+    class: :PrescriptionCondition
+  
+
+hasPrinceps:
+  constraints:
+    class: :BrandedDrug
+  
+
+hasRxNorm:
+  constraints:
+    class: :RxNorm
+  
+
+hasShortName:
+  constraints:
+    class: :ShortName
+  
+
+hasSmr:
+  constraints:
+    class: :Smr
+  
+
+htPrice:
+  constraints:
+    datatype: xsd:float
+  
+
+# ingredientCode:
+code:
+  superproperty: dcterms:identifier
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+inn:
+  constraints:
+    datatype: xsd:string
+  
+
+isAtu:
+  constraints:
+    datatype: xsd:boolean
+  
+
+isBreakable:
+  constraints:
+    datatype: xsd:boolean
+  
+
+isExceptionalDrug:
+  constraints:
+    datatype: xsd:boolean
+  
+
+isFormOf:
+  constraints: {}
+  
+
+isHomeopathy:
+  constraints:
+    datatype: xsd:boolean
+  
+
+isImportant:
+  constraints:
+    datatype: xsd:boolean
+    maxCount:   1
+  
+
+isPharmacodynamics:
+  constraints:
+    datatype: xsd:boolean
+  
+
+isPharmacokynetics:
+  constraints:
+    datatype: xsd:boolean
+  
+
+isRetrocedable:
+  constraints:
+    datatype: xsd:boolean
+  
+
+isUnderSurveillance:
+  constraints:
+    datatype: xsd:boolean
+  
+
+labelDose:
+  constraints:
+    datatype: xsd:float
+  
+
+labelForm:
+  constraints:
+    datatype: xsd:string
+  
+
+level:
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+maxReimbursementRatePct:
+  constraints:
+    datatype: xsd:float
+  
+
+maxUcdPrice:
+  constraints:
+    datatype: xsd:float
+  
+
+maxUnitPrice:
+  constraints:
+    datatype: xsd:float
+  
+
+mecanism:
+  constraints:
+    datatype: xsd:string
+  
+
+medicabaseId:
+  superproperty: dcterms:identifier
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+meshId:
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+minUcdPrice:
+  constraints:
+    datatype: xsd:float
+  
+
+minUnitPrice:
+  constraints:
+    datatype: xsd:float
+  
+
+ndc:
+  superproperty: dcterms:identifier
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+nroDefinitivo:
+  superproperty: dcterms:identifier
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+packageDoseLabel:
+  # superproperty: rdfs:label
+  constraints:
+    datatype: xsd:string
+  
+
+packageDoseUnit:
+  constraints:
+    datatype: xsd:string
+  
+
+packageDoseValue:
+  constraints:
+    datatype: 
+      - xsd:integer
+      - xsd:float
+  
+
+packageForm:
+  constraints:
+    datatype: xsd:string
+  
+
+packageNbUnits:
+  constraints:
+    datatype: xsd:integer
+  
+
+# TODO: Duplicate?
+packagingForm:
+  constraints:
+    datatype: xsd:string
+  
+
+patientLabel:
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+precautionOfUse:
+  constraints:
+    datatype: xsd:string
+  
+
+preDispensationFeePrice:
+  constraints:
+    datatype: xsd:float
+  
+
+prescriptionConditionCategory:
+  constraints:
+    datatype: xsd:string
+  
+
+prescriptionConditionSubcategory:
+  constraints:
+    datatype: xsd:string
+  
+
+pubchemId:
+  # superproperty: dcterms:identifier
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+rcp:
+  constraints:
+    datatype: xsd:string
+  
+
+reimbursementRate:
+  constraints:
+    datatype: xsd:float
+  
+
+relevance:
+  constraints:
+    datatype: xsd:string
+  
+
+rxcui:
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+rxConcept:
+  constraints:
+    datatype: xsd:string
+  
+
+scholzThcode:
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+sdc:
+  superproperty: dcterms:identifier
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+setId:
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+startDate:
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:date
+  
+
+stockAlert:
+  constraints:
+    datatype: xsd:string
+  
+
+totalPrice:
+  constraints:
+    datatype: xsd:float
+  
+
+toConsider:
+  constraints:
+    datatype: xsd:string
+  
+
+ucd13:
+  superproperty: dcterms:identifier
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+ucd7:
+  superproperty: dcterms:identifier
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+unii:
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer
+  
+
+unit:
+  constraints:
+    datatype: xsd:string
+  
+
+value:
+  constraints:
+    datatype: 
+      - xsd:float
+      - xsd:integer
+  
+
+wikipediaId:
+
+  superproperty: dcterms:identifier
+  constraints:
+    datatype: xsd:string
+    # datatype: xsd:integer

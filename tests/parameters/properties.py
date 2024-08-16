@@ -1,0 +1,41 @@
+"""Define test parameters for properties"""
+
+from rdflib import DCTERMS, OWL, RDF, RDFS, SKOS
+
+PARAMETERS_PROPERTIES_RESOURCE = {
+    DCTERMS.identifier,
+    DCTERMS.source,
+    RDF.type,
+    SKOS.prefLabel,
+    SKOS.altLabel,
+}
+
+PARAMETERS_PROPERTIES_CLASS = {
+    RDFS.subClassOf,
+    *PARAMETERS_PROPERTIES_RESOURCE,
+}
+
+PARAMETERS_PROPERTIES_PROPERTY = {
+    RDFS.subPropertyOf,
+    *PARAMETERS_PROPERTIES_RESOURCE,
+}
+
+PARAMETERS_PROPERTIES_CONTAINER = {
+    RDFS.member,
+    *PARAMETERS_PROPERTIES_RESOURCE,
+}
+
+PARAMETERS_PROPERTIES_LIST = {
+    RDF.first,
+    RDF.rest,
+    *PARAMETERS_PROPERTIES_RESOURCE,
+}
+
+PARAMETERS_PROPERTIES_ONTOLOGY = {
+    OWL.imports,
+    OWL.priorVersion,
+    OWL.versionInfo,
+    RDFS.comment,
+    RDFS.label,
+    *PARAMETERS_PROPERTIES_RESOURCE,
+}

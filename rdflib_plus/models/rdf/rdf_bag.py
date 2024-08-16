@@ -1,11 +1,15 @@
 """RDF Bag constructor"""
 
-from typing import Union
+import random
+from typing import Optional
 
 from rdflib import RDF
 
 from rdflib_plus.models.rdf.rdfs_container import Container
 from rdflib_plus.models.rdf.rdfs_resource import ObjectType, ResourceOrIri
+
+# Define specific custom type
+CollectionType = list[ObjectType] | set[ObjectType]
 
 
 class Bag(Container):
@@ -14,57 +18,61 @@ class Bag(Container):
     # Bag's RDF type
     _type: ResourceOrIri = RDF.Bag
 
-    # def add(self, element: ObjectType) -> None:
-    def add_item(self, element: ObjectType) -> None:
-        """Append element to Bag.
+    def _any_index(
+        self,
+        elements: Optional[list[ObjectType]] = None,
+        include_default: bool = True,
+    ) -> int:
+        """Return any element of elements.
 
         Args:
-            element (Resource | IRI | Literal | Any):
-                Element to add to Bag.
+            elements (
+                list[Resource | IRI | Literal | Any] | None,
+                optional
+            ):
+                Elements list to pick element from. Defaults to None.
+            include_default (bool, optional):
+                Whether to consider default element. Defaults to True.
+
+        Returns:
+            int: Index of element randomly picked from Bag.
         """
 
-        super()._append(element)
+        # If no elements list is specified
+        if elements is None:
+            # Use Bag's elements list
+            elements = self.elements
 
-    def discard(self, element: ObjectType) -> None:
-        """Remove element from Bag,
-           without raising error if it was not present.
+        # Include default element or not
+        start = 0 if include_default else 1
+
+        # Randomly choose index of element ot pick
+        index = random.randint(start, len(elements) - 1)
+
+        return index
+
+    def any(self, include_default: bool = True) -> Optional[ObjectType]:
+        """Return any element of Bag.
 
         Args:
-            element (Resource | IRI | Literal | Any):
-                Element to remove from Bag.
+            include_default (bool, optional):
+                Whether to consider default element. Defaults to True.
+
+        Returns:
+            Resource | IRI | Literal | Any | None:
+                If any, random element from Bag. Otherwise, None.
         """
 
-        # Until there are elements with this value left in Bag
-        while True:
-            # Try to remove it
-            try:
-                super().remove_item(element)
-            # Otherwise, stop iteration as none are left
-            except ValueError:
-                break
+        # If Bag does not have any elements, return None
+        if not self._elements:
+            return None
 
-    # def remove(self, element: ObjectType) -> None:
-    def remove_item(self, element: ObjectType) -> None:
-        """Remove element from Bag,
-           and raise an error if it was not present.
+        # Randomly pick index
+        index = self._any_index(
+            self._elements, include_default=include_default
+        )
 
-        Args:
-            element (Resource | IRI | Literal | Any):
-                Element to remove from Bag.
-        """
+        # Get associated element
+        element = self._elements[index]
 
-        # Remove element
-        super().remove_item(element)
-
-        # Try to remove other instances of element, until none are left
-        self.discard(element)
-
-    def update(self, new_elements: Union["Bag", list[ObjectType]]) -> None:
-        """Update Bag with new elements.
-
-        Args:
-            new_elements (Bag | list[Resource | IRI | Literal | Any]):
-                New elements to add to Bag.
-        """
-
-        super()._extend(new_elements)
+        return element

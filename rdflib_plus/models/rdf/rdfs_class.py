@@ -34,6 +34,9 @@ class Class(Resource):
     # Class's RDF type
     _type: ResourceOrIri = RDFS.Class
 
+    # Separating character in IRI between path and identifier
+    _sep: str = "/"
+
     # Property that links Class to its parent(s)
     # Typehint: Property | IRI
     _parent_property: IRI = RDFS.subClassOf
@@ -49,9 +52,11 @@ class Class(Resource):
         label: str,
         identifier_property: Optional[IRI] = None,
         namespace: Optional[Namespace] = None,
+        local: bool = False,
         super_class: Optional[SuperClassType] = None,
         hierarchical_path: bool = DEFAULT_HIERARCHICAL_PATH,
         lang: LangType = DEFAULT_LANGUAGE,
+        type_in_iri: bool = True,
         check_triples: bool = DEFAULT_CHECK_TRIPLES,
         bnode: bool = False,
         constraints: Optional[ConstraintsType] = None,
@@ -63,27 +68,30 @@ class Class(Resource):
                 Graph to search or create Class into.
             label (str):
                 Class's label.
-            identifier_property (Optional[IRI | Property], optional):
-                Class's specific identifier property.
-                Defaults to None.
-            namespace (Optional[Namespace], optional):
+            identifier_property (IRI | Property | None, optional):
+                Class's specific identifier property. Defaults to None.
+            namespace (Namespace | None, optional):
                 Namespace to search or create Class into. Defaults to None.
-            super_class (Optional[Class | IRI | list[Class | IRI]], optional):
+            local (bool, optional):
+                Whether Resource only appears in the specified namespace.
+                Defaults to False.
+            super_class (Class | IRI | list[Class | IRI] | None, optional):
                 Class's super-class. Defaults to None.
             hierarchical_path (bool, optional):
                 Whether to include Class's parent hierarchy in its path.
                 Defaults to DEFAULT_HIERARCHICAL_PATH.
-            lang (Optional[str], optional):
+            lang (str | None, optional):
                 Class's language. Defaults to DEFAULT_LANGUAGE.
+            type_in_iri (bool, optional):
+                Whether to include Resource's type in IRI. Defaults to True.
             check_triples (bool, optional):
                 Whether to check triples that are added or set using Class.
                 Defaults to DEFAULT_CHECK_TRIPLES.
             bnode (bool, optional):
                 Whether instances of Class should be blank nodes.
                 Defaults to False.
-            constraints (Optional[dict[IRI, dict[str, Any]]], optional):
-                Class's specific constraints.
-                Defaults to None.
+            constraints (dict[IRI, dict[str, Any]] | None, optional):
+                Class's specific constraints. Defaults to None.
         """
 
         # Set whether instances of Class should be blank nodes
@@ -92,20 +100,26 @@ class Class(Resource):
         # Initialize parent hierarchy
         path = []
 
-        # If a single superclass is specified
-        if super_class is not None and not isinstance(super_class, list):
-            # If required, keep track of Class's parent hierarchy
-            # using superclass's path (if it is a Class), or
-            # superclass's fragment (if it is an IRI)
-            if hierarchical_path:
-                path = (
-                    super_class.path
-                    if isinstance(super_class, Class)
-                    else [super_class.fragment]
-                )
+        # If a super-class is specified
+        if super_class is not None:
+            # Do not add type in Class's IRI,
+            # as it will already be in Class's parent (if any)
+            type_in_iri = False
 
-            # Turn superclass into a list for convenience
-            super_class = [super_class]
+            # If a single superclass is specified
+            if not isinstance(super_class, list):
+                # If required, keep track of Class's parent hierarchy
+                # using superclass's path (if it is a Class), or
+                # superclass's fragment (if it is an IRI)
+                if hierarchical_path:
+                    if isinstance(super_class, Class):
+                        path = super_class.path
+                        path.append(super_class.id)
+                    else:
+                        path = [super_class.fragment]
+
+                # Turn superclass into a list for convenience
+                super_class = [super_class]
 
         # Create Class as a Resource
         super().__init__(
@@ -114,7 +128,9 @@ class Class(Resource):
             path=path,
             identifier_property=identifier_property,
             namespace=namespace,
+            local=local,
             lang=lang,
+            type_in_iri=type_in_iri,
             check_triples=check_triples,
         )
 
@@ -136,26 +152,6 @@ class Class(Resource):
                 # Add hierarchical relation in the graph
                 self.add(self._parent_property, class_iri)
 
-    def _build_path(self, identifier: str) -> str:
-        """Add Resource's identifier to IRI path.
-
-        Args:
-            identifier (str):
-                Resource's identifier.
-
-        Returns:
-            str: Full Resource's IRI path.
-        """
-
-        # Add Class's identifier to self.path,
-        # So that instances of Class have its identifier in their path
-        self._path.append(identifier)
-
-        # Add identifier to path as a pathinfo
-        path = "/".join(self._path)
-
-        return path
-
     @staticmethod
     def _format_identifier(identifier: str) -> str:
         """Format Class's identifier (in PascalCase).
@@ -168,7 +164,18 @@ class Class(Resource):
             str: Formatted Class's identifier.
         """
 
-        return camelize(format_label(identifier))
+        # Format identifier
+        identifier_formatted = camelize(format_label(identifier))
+
+        # If a formatting has been necessary
+        if identifier != identifier_formatted:
+            # Raise a warning
+            warnings.warn(
+                f"Formatting Resource's identifier '{identifier}' into "
+                f"'{identifier_formatted}'."
+            )
+
+        return identifier_formatted
 
     def _get_constraints_instance(
         self,
@@ -178,9 +185,9 @@ class Class(Resource):
         """Set Class's 'constraints_instance' attribute.
 
         Args:
-            constraints (Optional[dict[IRI, dict[str, Any]]], optional):
+            constraints (dict[IRI, dict[str, Any]] | None, optional):
                 Class's specific constraints. Defaults to None.
-            super_class (Optional[list[Class | IRI]], optional):
+            super_class (list[Class | IRI] | None, optional):
                 Class's super-class. Defaults to None.
         """
 
@@ -243,7 +250,7 @@ class Class(Resource):
         """
 
         return type(
-            f"{self.id}Instance",
+            f"{self._id}Instance",
             (Resource,),
             {
                 "_type": self,
@@ -263,15 +270,15 @@ class Class(Resource):
         """Create instance of Class.
 
         Args:
-            graph (Optional[Graph | MultiGraph], optional):
+            graph (Graph | MultiGraph | None, optional):
                 Graph to search or create instance into. Defaults to None.
-            identifier (Optional[str | int], optional):
+            identifier (str | int | None, optional):
                 Instance's identifier. Defaults to None.
-            label (Optional[str], optional):
+            label (str | None, optional):
                 Instance's label. Defaults to None.
-            lang (Optional[str], optional):
+            lang (str | None, optional):
                 Instance's language. Defaults to DEFAULT_LANGUAGE.
-            check_triples (Optional[bool], optional):
+            check_triples (bool | None, optional):
                 Whether to check triples that are added or set using Resource.
                 Defaults to None.
 

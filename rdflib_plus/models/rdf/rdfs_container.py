@@ -9,15 +9,19 @@ from rdflib_plus.models.rdf.rdfs_resource import (
     Resource,
     ResourceOrIri,
 )
-from rdflib_plus.models.utils.ordered_object import OrderedObject
+from rdflib_plus.models.utils.Collection import Collection
 from rdflib_plus.models.utils.types import ConstraintsType
 
 
-class Container(OrderedObject):
+class Container(Collection):
     """RDFS Container constructor"""
 
     # Container's RDF type
     _type: ResourceOrIri = RDFS.Container
+
+    # Specify that object is a RDFS Container
+    # (for triple checking, among other things)
+    _is_container: bool = True
 
     # Container's property constraints
     _constraints: ConstraintsType = Resource.update_constraints(
@@ -43,22 +47,6 @@ class Container(OrderedObject):
         predicate = RDF[f"_{index}"]
 
         return predicate
-
-    def _append(self, element: ObjectType) -> None:
-        """Append element to the end of Container.
-
-        Args:
-            element (Resource | IRI | Literal | Any):
-                Element to append to Container.
-        """
-
-        # Append element to the elements list
-        self._elements.append(element)
-
-        # Set element's value in graph, with appropriate index
-        index = len(self) - 1
-        predicate = self._get_predicate(index)
-        self.set(predicate, element)
 
     def _insert(self, index: int, element: ObjectType) -> None:
         """Insert element at index-th position of Container.
@@ -90,19 +78,7 @@ class Container(OrderedObject):
             # Update value in graph
             self.set(predicate, element)
 
-    def clear(self) -> None:
-        """Remove all elements of Container."""
-
-        # For every element
-        for i in range(len(self)):
-            # Remove value in graph
-            predicate = self._get_predicate(i)
-            self.remove(predicate)
-
-        # Empty element lists
-        self._elements.clear()
-
-    def pop(self, index: int = 0) -> ObjectType:
+    def _pop(self, index: int = 0) -> ObjectType:
         """Delete and return element of Container at given index.
 
         Args:
@@ -138,3 +114,31 @@ class Container(OrderedObject):
         del self._elements[index]
 
         return element
+
+    def append(self, element: ObjectType) -> None:
+        """Append element to the end of Container.
+
+        Args:
+            element (Resource | IRI | Literal | Any):
+                Element to append to Container.
+        """
+
+        # Append element to the elements list
+        self._elements.append(element)
+
+        # Set element's value in graph, with appropriate index
+        index = len(self) - 1
+        predicate = self._get_predicate(index)
+        self.set(predicate, element)
+
+    def clear(self) -> None:
+        """Remove all elements of Container."""
+
+        # For every element
+        for i in range(len(self)):
+            # Remove value in graph
+            predicate = self._get_predicate(i)
+            self.remove(predicate)
+
+        # Empty element lists
+        self._elements.clear()

@@ -1,5 +1,7 @@
 """OWL Ontology constructor"""
 
+import re
+import warnings
 from typing import Optional
 
 from rdflib import OWL, RDFS, Namespace
@@ -9,6 +11,7 @@ from rdflib_plus.definitions import RDFS_CLASSES
 from rdflib_plus.models.rdf.rdf_property import PropertyOrIri
 from rdflib_plus.models.rdf.rdfs_resource import Resource, ResourceOrIri
 from rdflib_plus.models.utils.types import ConstraintsType, GraphType, LangType
+from rdflib_plus.namespaces import stringify_iri
 
 
 class Ontology(Resource):
@@ -42,13 +45,13 @@ class Ontology(Resource):
                 Graph to search or create Ontology into.
             label (str):
                 Ontology's label.
-            version (Optional[str], optional):
+            version (str | None, optional):
                 Ontology's version. Defaults to None.
-            comment (Optional[str], optional):
+            comment (str | None, optional):
                 Ontology's description. Defaults to None.
-            namespace (Optional[Namespace], optional):
+            namespace (Namespace | None, optional):
                 Namespace to search or create Ontology into. Defaults to None.
-            lang (Optional[str], optional):
+            lang (str | None, optional):
                 Ontology's language. Defaults to DEFAULT_LANGUAGE.
             check_triples (bool, optional):
                 Whether to check triples that are added or set using Ontology.
@@ -59,12 +62,28 @@ class Ontology(Resource):
             graph,
             identifier=label,
             namespace=namespace,
+            local=True,
             lang=lang,
             check_triples=check_triples,
         )
 
-        # If any, set ontology version
+        # If an ontology version is specified
         if version is not None:
+            # If version number is not in the right format
+            if version and (
+                not re.match(r"[\d\.]*$", version)
+                or ".." in version
+                or version[0] == "."
+                or version[-1] == "."
+            ):
+                # Raise a warning
+                warnings.warn(
+                    f"{stringify_iri(self._type)} '{label}': Ontology version "
+                    f"number '{version}' is not in the appropriate format. "
+                    "Setting it anyway."
+                )
+
+            # Set ontology version
             self.set(OWL.versionInfo, version)
 
         # If any, set ontology description as a RDFS comment

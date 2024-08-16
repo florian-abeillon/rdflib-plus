@@ -1,12 +1,12 @@
 """RDF Property constructor"""
 
 import re
+import warnings
 from typing import Optional, Union
 
 from inflection import camelize
 from rdflib import OWL, RDF, RDFS, Namespace
 from rdflib import URIRef as IRI
-
 from rdflib_plus.config import (
     DEFAULT_CHECK_TRIPLES,
     DEFAULT_HIERARCHICAL_PATH,
@@ -49,9 +49,11 @@ class Property(Class):
         graph: GraphType,
         label: str,
         namespace: Optional[Namespace] = None,
+        local: bool = False,
         super_property: Optional[SuperPropertyType] = None,
         hierarchical_path: bool = DEFAULT_HIERARCHICAL_PATH,
         lang: LangType = DEFAULT_LANGUAGE,
+        type_in_iri: bool = True,
         check_triples: bool = DEFAULT_CHECK_TRIPLES,
         constraints: Optional[ConstraintsType] = None,
     ) -> None:
@@ -62,38 +64,51 @@ class Property(Class):
                 Graph to search or create Property into.
             label (str):
                 Property's label.
-            namespace (Optional[Namespace], optional):
+            namespace (Namespace | None, optional):
                 Namespace to search or create Property into. Defaults to None.
-            super_property (Optional[Property | IRI | list[Property | IRI]],
+            local (bool, optional):
+                Whether Resource only appears in the specified namespace.
+                Defaults to False.
+            super_property (Property | IRI | list[Property | IRI] | None,
                             optional):
                 Property's super-property. Defaults to None.
             hierarchical_path (bool, optional):
                 Whether to include Property's parent hierarchy in its path.
                 Defaults to DEFAULT_HIERARCHICAL_PATH.
-            lang (Optional[str], optional):
+            lang (str | None, optional):
                 Property's language. Defaults to DEFAULT_LANGUAGE.
+            type_in_iri (bool, optional):
+                Whether to include Resource's type in IRI. Defaults to True.
             check_triples (bool, optional):
                 Whether to check triples that are added or set using Property.
                 Defaults to DEFAULT_CHECK_TRIPLES.
-            constraints (Optional[dict[IRI, dict[str, Any]]], optional):
-                Class's specific constraints.
-                Defaults to None.
+            constraints (dict[IRI, dict[str, Any]] | None, optional):
+                Class's specific constraints. Defaults to None.
         """
 
         super().__init__(
             graph,
             label,
             namespace=namespace,
+            local=local,
             super_class=super_property,
             hierarchical_path=hierarchical_path,
             lang=lang,
+            type_in_iri=type_in_iri,
             check_triples=check_triples,
             bnode=False,
             constraints=constraints,
         )
 
         # Set inverse property of Property
-        self.inverse = self._set_inverse_property()
+        self.inverse = self._set_inverse_property(
+            graph,
+            label,
+            namespace=namespace,
+            super_property=super_property,
+            hierarchical_path=hierarchical_path,
+            lang=lang,
+        )
 
     @staticmethod
     def _format_identifier(identifier: str) -> str:
@@ -106,22 +121,35 @@ class Property(Class):
             str: Formatted Property's identifier
         """
 
-        return camelize(format_label(identifier), uppercase_first_letter=False)
+        # Format identifier
+        identifier_formatted = camelize(
+            format_label(identifier), uppercase_first_letter=False
+        )
+
+        # If a formatting has been necessary
+        if identifier != identifier_formatted:
+            # Raise a warning
+            warnings.warn(
+                f"Formatting Resource's identifier '{identifier}' into "
+                f"'{identifier_formatted}'."
+            )
+
+        return identifier_formatted
 
     def _get_label_inverse(self) -> Optional[str]:
         """Return label of Inverse property of Property, if appropriate.
 
         Returns:
-            Optional[str]: Label of Inverse property.
+            str | None: Label of Inverse property.
         """
 
         # Look for patterns like "has..." in Property's label
-        res = re.match(r"has([A-Z]\w*)$", self.id)
+        res = re.match(r"has([A-Z]\w*)$", self._id)
         if res:
             return f"is{res.group(1)}Of"
 
         # Look for patterns like "is...Of" in Property's label
-        res = re.match(r"is([A-Z]\w*)Of$", self.id)
+        res = re.match(r"is([A-Z]\w*)Of$", self._id)
         if res:
             return f"has{res.group(1)}"
 
@@ -143,20 +171,20 @@ class Property(Class):
                 Graph to search or create inverse Property into.
             label (str):
                 Inverse Property's label.
-            namespace (Optional[Namespace], optional):
+            namespace (Namespace | None, optional):
                 Namespace to search or create inverse Property into.
                 Defaults to None.
-            super_property (Optional[Property | IRI | list[Property | IRI]],
+            super_property (Property | IRI | list[Property | IRI] | None,
                             optional):
                 Property's super-property. Defaults to None.
             hierarchical_path (bool, optional):
                 Whether to include Property's parent hierarchy in its path.
                 Defaults to False.
-            lang (Optional[str], optional):
+            lang (str | None, optional):
                 Inverse Property's language. Defaults to None.
 
         Returns:
-            Optional[Property]: Inverse property if any, otherwise None.
+            Property | None: Inverse property if any, otherwise None.
         """
 
         # Initialize potential OWL inverse property

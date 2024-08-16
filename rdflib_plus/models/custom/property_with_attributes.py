@@ -4,12 +4,16 @@ from typing import Optional
 
 from rdflib_plus.config import DEFAULT_CHECK_TRIPLES
 from rdflib_plus.models.custom.n_ary_property import NaryProperty
-from rdflib_plus.models.rdf.rdfs_resource import Resource
+from rdflib_plus.models.rdf.rdfs_resource import Resource, ResourceOrIri
 from rdflib_plus.models.utils.types import GraphType
+from rdflib_plus.namespaces import DEFAULT_NAMESPACE
 
 
 class PropertyWithAttributes(NaryProperty):
     """Constructor of Property with attributes"""
+
+    # PropertyWithAttributes's RDF type
+    _type: ResourceOrIri = DEFAULT_NAMESPACE["PropertyWithAttributes"]
 
     def __call__(
         self,
@@ -20,9 +24,9 @@ class PropertyWithAttributes(NaryProperty):
         """Create instance of Property with attributes.
 
         Args:
-            graph (Optional[Graph | MultiGraph], optional):
+            graph (Graph | MultiGraph | None, optional):
                 Graph to search or create instance into. Defaults to None.
-            check_triples (Optional[bool], optional):
+            check_triples (bool | None, optional):
                 Whether to check triples that are added or set using Resource.
                 Defaults to None.
 

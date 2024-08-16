@@ -2,10 +2,10 @@
 
 from rdflib import OWL
 
-from rdflib_plus.models.utils.define import define_class
+from rdflib_plus.models.utils.define import define_property
 
 # Define OWL Property constructors
-FunctionalProperty = define_class("FunctionalProperty", OWL)
-InverseFunctionalProperty = define_class("InverseFunctionalProperty", OWL)
-SymmetricProperty = define_class("SymmetricProperty", OWL)
-TransitiveProperty = define_class("TransitiveProperty", OWL)
+FunctionalProperty = define_property("FunctionalProperty", OWL)
+InverseFunctionalProperty = define_property("InverseFunctionalProperty", OWL)
+SymmetricProperty = define_property("SymmetricProperty", OWL)
+TransitiveProperty = define_property("TransitiveProperty", OWL)

@@ -1,6 +1,6 @@
 """RDF Seq constructor"""
 
-from typing import Callable, Optional, Union
+from typing import Callable, Optional
 
 from rdflib import RDF
 
@@ -13,6 +13,17 @@ class Seq(Container):
 
     # Seq's RDF type
     _type: ResourceOrIri = RDF.Seq
+
+    def __delitem__(self, index: int) -> None:
+        """Delete element of Seq at given index.
+
+        Args:
+            index (int):
+                Index of element to delete in Seq. Can be negative.
+        """
+
+        # Pop element at given index
+        _ = self._pop(index=index)
 
     def __getitem__(self, index: int) -> ObjectType:
         """Return element of Seq at given index.
@@ -47,51 +58,6 @@ class Seq(Container):
         # Update value in graph
         self.set(predicate, element)
 
-    def __delitem__(self, index: int) -> None:
-        """Delete element of Seq at given index.
-
-        Args:
-            index (int):
-                Index of element to delete in Seq. Can be negative.
-        """
-
-        # Pop element at given index
-        _ = self.pop(index=index)
-
-    def append(self, element: ObjectType) -> None:
-        """Append element to the end of Seq.
-
-        Args:
-            element (Resource | IRI | Literal | Any):
-                Element to append to Seq.
-        """
-
-        self._append(element)
-
-    def extend(self, new_elements: Union["Seq", list[ObjectType]]) -> None:
-        """Extend Seq with new elements.
-
-        Args:
-            new_elements (Seq | list[Resource | IRI | Literal | Any]):
-                New elements to add to Seq.
-        """
-
-        super()._extend(new_elements)
-
-    def pop(self, index: int = -1) -> ObjectType:
-        """Delete and return element of Bag at given index.
-
-        Args:
-            index (int, optional):
-                Index of element to delete and return in Seq.
-                Can be negative. Defaults to -1.
-
-        Returns:
-            Resource | IRI | Literal | Any: Removed element.
-        """
-
-        return super().pop(index=index)
-
     def index(self, element: ObjectType, start: int = 0, end: int = -1) -> int:
         """Get index of element in Seq.
 
@@ -109,26 +75,6 @@ class Seq(Container):
 
         return self._index(element, start=start, end=end)
 
-    def reverse(self) -> None:
-        """Reverse order of elements of Seq."""
-
-        self.elements = reversed(self._elements)
-
-    def sort(
-        self, key: Optional[Callable] = None, reverse: bool = False
-    ) -> None:
-        """Sort elements of Seq.
-
-        Args:
-            key (Optional[Callable], optional):
-                Key to use for sorting the elements. Defaults to None.
-            reverse (bool, optional):
-                Whether to sort in reverse (ie. descending) order.
-                Defaults to False.
-        """
-
-        self.elements = sorted(self._elements, key=key, reverse=reverse)
-
     def insert(self, index: int, element: ObjectType) -> None:
         """Insert element at index-th position of Seq.
 
@@ -140,3 +86,37 @@ class Seq(Container):
         """
 
         super()._insert(index, element)
+
+    def pop(self, index: int = -1) -> ObjectType:
+        """Delete and return element of Seq at given index.
+
+        Args:
+            index (int, optional):
+                Index of element to delete and return in Seq.
+                Can be negative. Defaults to -1.
+
+        Returns:
+            Resource | IRI | Literal | Any: Removed element.
+        """
+
+        return super()._pop(index=index)
+
+    def reverse(self) -> None:
+        """Reverse order of elements of Seq."""
+
+        self.elements = reversed(self._elements)
+
+    def sort(
+        self, key: Optional[Callable] = None, reverse: bool = False
+    ) -> None:
+        """Sort elements of Seq.
+
+        Args:
+            key (Callable | None, optional):
+                Key to use for sorting the elements. Defaults to None.
+            reverse (bool, optional):
+                Whether to sort in reverse (ie. descending) order.
+                Defaults to False.
+        """
+
+        self.elements = sorted(self._elements, key=key, reverse=reverse)
