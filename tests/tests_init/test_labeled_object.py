@@ -152,7 +152,7 @@ def test_init_labeled_object_within_namespace(
     if not local:
         namespace = DEFAULT_NAMESPACE
 
-    # Set additional triples
+    # Set additional triple
     add_triples = [(DCTERMS.source, source)]
 
     # Test constructor
