@@ -11,17 +11,17 @@ from tests.parameters import (
     PARAMETERS_LANGS,
     PARAMETERS_NAMESPACES,
 )
-from tests.tests_init.utils import check_init_labeled_object, get_label
-from tests.utils import cartesian_product
+from tests.tests_init.utils import check_init_labeled_object
+from tests.utils import cartesian_product, get_label
 
 
 @pytest.mark.parametrize(
-    "model,model_name,model_type,properties,camel_case,pascal_case,"
-    "label,legal_label,label_camel_case,legal_label_camel_case,"
-    "label_pascal_case,legal_label_pascal_case",
+    "model, model_name, model_type, properties, camel_case, pascal_case,"
+    "label, legal_label, label_camel_case, legal_label_camel_case,"
+    "label_pascal_case, legal_label_pascal_case",
     cartesian_product(PARAMETERS_LABELED_OBJECTS, PARAMETERS_LABELS),
 )
-def test_init_labeled_object_with_label(
+def test_init_with_label(
     model: type,
     model_name: str,
     model_type: IRI,
@@ -58,7 +58,7 @@ def test_init_labeled_object_with_label(
     legal_identifier = legal_label_formatted
 
     # Test constructor
-    _ = check_init_labeled_object(
+    resource = check_init_labeled_object(
         model,
         model_name,
         model_type,
@@ -72,10 +72,10 @@ def test_init_labeled_object_with_label(
 
 
 @pytest.mark.parametrize(
-    "model,model_name,model_type,properties,camel_case,pascal_case,lang",
+    "model, model_name, model_type, properties, camel_case, pascal_case, lang",
     cartesian_product(PARAMETERS_LABELED_OBJECTS, PARAMETERS_LANGS),
 )
-def test_init_labeled_object_with_label_lang(
+def test_init_with_label_lang(
     model: type,
     model_name: str,
     model_type: IRI,
@@ -100,7 +100,7 @@ def test_init_labeled_object_with_label_lang(
     legal_identifier = legal_label
 
     # Test constructor
-    _ = check_init_labeled_object(
+    resource = check_init_labeled_object(
         model,
         model_name,
         model_type,
@@ -114,13 +114,13 @@ def test_init_labeled_object_with_label_lang(
 
 
 @pytest.mark.parametrize(
-    "model,model_name,model_type,properties,camel_case,pascal_case,namespace,"
-    "local",
+    "model, model_name, model_type, properties, camel_case, pascal_case,"
+    "namespace, local",
     cartesian_product(
         PARAMETERS_LABELED_OBJECTS, PARAMETERS_NAMESPACES, [True, False]
     ),
 )
-def test_init_labeled_object_within_namespace(
+def test_init_within_namespace(
     model: type,
     model_name: str,
     model_type: IRI,
@@ -156,7 +156,7 @@ def test_init_labeled_object_within_namespace(
     add_triples = [(DCTERMS.source, source)]
 
     # Test constructor
-    _ = check_init_labeled_object(
+    resource = check_init_labeled_object(
         model,
         model_name,
         model_type,

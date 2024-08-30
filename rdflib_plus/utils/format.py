@@ -13,7 +13,7 @@ from rdflib_plus.config import (
 
 # Get the percent-encoding of URI/IRI illegal characters
 ILLEGAL_CHARS_PERCENT_ENCODED = {
-    char: urllib.parse.quote(char)
+    char: "%2F" if char == "/" else urllib.parse.quote(char)
     for char in ILLEGAL_CHARS_OFFICIAL + ILLEGAL_CHARS_UNOFFICIAL
 }
 
@@ -37,7 +37,7 @@ def legalize_for_iri(identifier: str | int, authority: bool = False) -> str:
     # For every IRI illegal character
     for char, char_encoded in ILLEGAL_CHARS_PERCENT_ENCODED.items():
         # If text will not be used as authority
-        # And character is legal in path, query and fragment
+        # And character is legal in path, fragment, and query
         # Do not do anything
         if not authority and char in ILLEGAL_CHARS_IN_AUTHORITY_ONLY:
             continue

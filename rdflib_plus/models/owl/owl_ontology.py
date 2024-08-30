@@ -11,7 +11,6 @@ from rdflib_plus.definitions import RDFS_CLASSES
 from rdflib_plus.models.rdf.rdf_property import PropertyOrIri
 from rdflib_plus.models.rdf.rdfs_resource import Resource, ResourceOrIri
 from rdflib_plus.models.utils.types import ConstraintsType, GraphType, LangType
-from rdflib_plus.namespaces import stringify_iri
 
 
 class Ontology(Resource):
@@ -69,23 +68,31 @@ class Ontology(Resource):
 
         # If an ontology version is specified
         if version is not None:
-            # If version number is not in the right format
-            if version and (
-                not re.match(r"[\d\.]*$", version)
-                or ".." in version
-                or version[0] == "."
-                or version[-1] == "."
-            ):
-                # Raise a warning
-                warnings.warn(
-                    f"{stringify_iri(self._type)} '{label}': Ontology version "
-                    f"number '{version}' is not in the appropriate format. "
-                    "Setting it anyway."
-                )
-
-            # Set ontology version
-            self.set(OWL.versionInfo, version)
+            self._set_version_number(version)
 
         # If any, set ontology description as a RDFS comment
         if comment is not None:
             self.set(RDFS.comment, comment)
+
+    def _set_version_number(self, version: str) -> None:
+        """Set version number of Ontology.
+
+        Args:
+            version (str): Version number.
+        """
+
+        # If version number is not in the right format
+        if version and (
+            not re.fullmatch(r"[\d\.]*", version)
+            or ".." in version
+            or version[0] == "."
+            or version[-1] == "."
+        ):
+            # Raise a warning
+            warnings.warn(
+                f"{self}': Version number '{version}' is not in the "
+                "appropriate format. Setting it anyway."
+            )
+
+        # Set ontology version
+        self.set(OWL.versionInfo, version)

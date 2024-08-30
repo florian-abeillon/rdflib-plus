@@ -4,12 +4,8 @@ from rdflib import RDF, RDFS
 from rdflib import URIRef as IRI
 
 from rdflib_plus.definitions import RDFS_CLASSES
-from rdflib_plus.models.rdf.rdfs_resource import (
-    ObjectType,
-    Resource,
-    ResourceOrIri,
-)
-from rdflib_plus.models.utils.Collection import Collection
+from rdflib_plus.models.rdf.rdfs_resource import ObjectType, ResourceOrIri
+from rdflib_plus.models.utils.collection import Collection
 from rdflib_plus.models.utils.types import ConstraintsType
 
 
@@ -24,7 +20,7 @@ class Container(Collection):
     _is_container: bool = True
 
     # Container's property constraints
-    _constraints: ConstraintsType = Resource.update_constraints(
+    _constraints: ConstraintsType = Collection.update_constraints(
         RDFS_CLASSES[_type]["constraints"]
     )
 
@@ -48,6 +44,22 @@ class Container(Collection):
 
         return predicate
 
+    def _append(self, element: ObjectType) -> None:
+        """Append element to the end of Container.
+
+        Args:
+            element (Resource | IRI | Literal | Any):
+                Element to append to Container.
+        """
+
+        # Append element to the elements list
+        self._elements.append(element)
+
+        # Set element's value in graph, with appropriate index
+        index = len(self) - 1
+        predicate = self._get_predicate(index)
+        self.set(predicate, element)
+
     def _insert(self, index: int, element: ObjectType) -> None:
         """Insert element at index-th position of Container.
 
@@ -64,27 +76,35 @@ class Container(Collection):
         # Insert element into elements list
         self._elements.insert(index, element)
 
-        # For every element, from index-th
-        for i in range(index, len(self)):
-            # If i is not the last element
-            if i < len(self) - 1:
-                # Remove value in graph
-                predicate = self._get_predicate(index)
-                self.remove(predicate)
-
-            # Get i-th element
-            element = self._elements[i]
-
-            # Update value in graph
+        # If inserting the element at the end
+        if index == len(self) - 1:
+            # Add value into graph
+            predicate = self._get_predicate(index)
             self.set(predicate, element)
 
-    def _pop(self, index: int = 0) -> ObjectType:
+        # Otherwise
+        else:
+            # For every element, from index-th
+            for i in range(index, len(self)):
+                # If i is not the last element
+                if i < len(self) - 1:
+                    # Remove value in graph
+                    predicate = self._get_predicate(index)
+                    self.remove(predicate)
+
+                # Get i-th element
+                element = self._elements[i]
+
+                # Update value in graph
+                self.set(predicate, element)
+
+    def _pop(self, index: int) -> ObjectType:
         """Delete and return element of Container at given index.
 
         Args:
-            index (int, optional):
+            index (int):
                 Index of element to delete and return in Container.
-                Can be negative. Defaults to 0.
+                Can be negative.
 
         Returns:
             Resource | IRI | Literal | Any: Removed element.
@@ -114,22 +134,6 @@ class Container(Collection):
         del self._elements[index]
 
         return element
-
-    def append(self, element: ObjectType) -> None:
-        """Append element to the end of Container.
-
-        Args:
-            element (Resource | IRI | Literal | Any):
-                Element to append to Container.
-        """
-
-        # Append element to the elements list
-        self._elements.append(element)
-
-        # Set element's value in graph, with appropriate index
-        index = len(self) - 1
-        predicate = self._get_predicate(index)
-        self.set(predicate, element)
 
     def clear(self) -> None:
         """Remove all elements of Container."""

@@ -23,7 +23,7 @@ class Seq(Container):
         """
 
         # Pop element at given index
-        _ = self._pop(index=index)
+        _ = self._pop(index)
 
     def __getitem__(self, index: int) -> ObjectType:
         """Return element of Seq at given index.
@@ -37,6 +37,16 @@ class Seq(Container):
         """
 
         return self._elements[index]
+
+    def __reversed__(self) -> "Seq":
+        """Reverse order of elements of Seq, and returns self.
+
+        Returns:
+            Seq: Reversed Seq.
+        """
+
+        self.reverse()
+        return self
 
     def __setitem__(self, index: int, element: ObjectType) -> None:
         """Replace element of Seq at given index.
@@ -57,6 +67,16 @@ class Seq(Container):
 
         # Update value in graph
         self.set(predicate, element)
+
+    def append(self, element: ObjectType) -> None:
+        """Append element to the end of Seq.
+
+        Args:
+            element (Resource | IRI | Literal | Any):
+                Element to append to Seq.
+        """
+
+        self._append(element)
 
     def index(self, element: ObjectType, start: int = 0, end: int = -1) -> int:
         """Get index of element in Seq.
@@ -99,7 +119,7 @@ class Seq(Container):
             Resource | IRI | Literal | Any: Removed element.
         """
 
-        return super()._pop(index=index)
+        return super()._pop(index)
 
     def reverse(self) -> None:
         """Reverse order of elements of Seq."""

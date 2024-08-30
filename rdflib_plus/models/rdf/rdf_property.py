@@ -7,6 +7,7 @@ from typing import Optional, Union
 from inflection import camelize
 from rdflib import OWL, RDF, RDFS, Namespace
 from rdflib import URIRef as IRI
+
 from rdflib_plus.config import (
     DEFAULT_CHECK_TRIPLES,
     DEFAULT_HIERARCHICAL_PATH,
@@ -20,6 +21,7 @@ from rdflib_plus.models.rdf.rdfs_resource import (
     ResourceOrIri,
 )
 from rdflib_plus.models.utils.types import ConstraintsType, GraphType, LangType
+from rdflib_plus.namespaces import stringify_iri
 from rdflib_plus.utils import format_label
 
 # Define specific custom types
@@ -110,8 +112,8 @@ class Property(Class):
             lang=lang,
         )
 
-    @staticmethod
-    def _format_identifier(identifier: str) -> str:
+    @classmethod
+    def _format_identifier(cls, identifier: str) -> str:
         """Format Property's identifier (in camelCase).
 
         Args:
@@ -130,8 +132,8 @@ class Property(Class):
         if identifier != identifier_formatted:
             # Raise a warning
             warnings.warn(
-                f"Formatting Resource's identifier '{identifier}' into "
-                f"'{identifier_formatted}'."
+                f"{stringify_iri(cls._type)} '{identifier}': Formatting "
+                f"identifier '{identifier}' into '{identifier_formatted}'."
             )
 
         return identifier_formatted
@@ -144,12 +146,12 @@ class Property(Class):
         """
 
         # Look for patterns like "has..." in Property's label
-        res = re.match(r"has([A-Z]\w*)$", self._id)
+        res = re.fullmatch(r"has([A-Z]\w*)", self._id)
         if res:
             return f"is{res.group(1)}Of"
 
         # Look for patterns like "is...Of" in Property's label
-        res = re.match(r"is([A-Z]\w*)Of$", self._id)
+        res = re.fullmatch(r"is([A-Z]\w*)Of", self._id)
         if res:
             return f"has{res.group(1)}"
 
@@ -164,7 +166,7 @@ class Property(Class):
         hierarchical_path: bool = DEFAULT_HIERARCHICAL_PATH,
         lang: LangType = DEFAULT_LANGUAGE,
     ) -> Optional["Property"]:
-        """Set potential inverse property of Property
+        """Set potential inverse property of Property.
 
         Args:
             graph (Graph | MultiGraph):
@@ -209,7 +211,7 @@ class Property(Class):
                 ]
 
             # Create inverse property
-            inverse = Property(
+            inverse = self.__class__(
                 graph,
                 label,
                 namespace=namespace,

@@ -1,18 +1,24 @@
 """RDF Alt constructor"""
 
+import random as rd
 import warnings
 from typing import Optional
 
 from rdflib import RDF, Namespace
 
 from rdflib_plus.config import DEFAULT_CHECK_TRIPLES
-from rdflib_plus.models.rdf.rdf_bag import Bag, CollectionType
+from rdflib_plus.models.rdf.rdfs_container import Container
 from rdflib_plus.models.rdf.rdfs_resource import ObjectType, ResourceOrIri
+from rdflib_plus.models.utils.collection import Collection
 from rdflib_plus.models.utils.decorator import warning_remove_default
 from rdflib_plus.models.utils.types import GraphType
+from rdflib_plus.namespaces import stringify_iri
+
+# Define specific custom type
+CollectionType = list[ObjectType] | set[ObjectType] | Collection
 
 
-class Alt(Bag):
+class Alt(Container):
     """RDF Alt constructor"""
 
     # Alt's RDF type
@@ -25,27 +31,51 @@ class Alt(Bag):
         return self._elements[0] if self._elements else None
 
     @default.setter
-    def default(self, new_default: ObjectType, keep: bool = True) -> None:
+    def default(self, new_default: ObjectType) -> None:
         """Set a new default element to Alt.
 
         Args:
             new_default (Resource | IRI | Literal | Any):
                 New default element of Alt.
-            keep (bool, optional):
-                Whether to keep old default element in alternatives.
-                Defaults to True.
         """
-
-        # If old default element should not be kept
-        if not keep:
-            # Remove it
-            _ = self._pop(0)
 
         # Remove new default element from Alt
         self.discard_element(new_default)
 
         # Insert new default element
         self._insert(0, new_default)
+
+    @property
+    def alternatives(self) -> list[ObjectType]:
+        """Alternatives to default of Alt."""
+
+        return self._elements[1:] if self._elements else []
+
+    @alternatives.setter
+    def alternatives(
+        self, new_alternatives: list[ObjectType] | Collection
+    ) -> None:
+        """Set new alternatives to Alt.
+
+        Args:
+            new_alternatives (
+                list[Resource | IRI | Literal | Any]
+                | Collection
+            ):
+                New alternatives to Alt.
+        """
+
+        # If new_alternatives is a Collection, extract its elements
+        if isinstance(new_alternatives, Collection):
+            new_alternatives = new_alternatives.elements
+
+        # If necessary, remove default from new_alternatives
+        default = self.default
+        if default in new_alternatives:
+            new_alternatives = new_alternatives.remove(default)
+
+        # Set new_alternatives
+        self.elements = [default] + new_alternatives
 
     def __init__(
         self,
@@ -66,6 +96,7 @@ class Alt(Bag):
             alternatives (
                 list[Resource | IRI | Literal | Any]
                 | set[Resource | IRI | Literal | Any]
+                | Collection
                 | None,
                 optional
             ):
@@ -81,26 +112,34 @@ class Alt(Bag):
         """
 
         # If no alternatives are specified
-        if alternatives is None or len(alternatives) == 0:
+        if alternatives is None or not alternatives:
             # Alt's elements list consists of default element (if specified)
             # otherwise nothing
             elements = [default] if default is not None else []
 
         # Otherwise, if alternatives are specified
         else:
+            # If alternatives is a Collection, extract its elements
+            if isinstance(alternatives, Collection):
+                alternatives = alternatives.elements
+
             # If no default element is specified
             if default is None:
-                # Randomly pick an index
-                index_default = self._any_index(alternatives)
-
-                # Pop element out of alternatives
-                default = alternatives.pop(index_default)
+                # Take the first alternative as default
+                default, *alternatives = alternatives
 
                 # Raise warning to notify about the choice of default element
-                warnings.warn(f"Using element {default} as Alt's default.")
+                warnings.warn(
+                    f"{stringify_iri(self._type)}: Using first element "
+                    f"'{default}' as default."
+                )
 
-            # Build full elements list
-            elements = [default] + alternatives
+            # Build full elements list, removing any duplicates
+            elements = [default] + [
+                alternative
+                for alternative in set(alternatives)
+                if alternative != default
+            ]
 
         super().__init__(
             graph,
@@ -110,32 +149,107 @@ class Alt(Bag):
             check_triples=check_triples,
         )
 
+    def _append(self, element: ObjectType) -> None:
+        """Add alternative to Alt.
+
+        Args:
+            element (Resource | IRI | Literal | Any):
+                Alternative to add to Alt.
+        """
+
+        # If the new alternative is already in Alt, raise a warning
+        if element == self.default:
+            warnings.warn(
+                f"{self}': Trying to set new alternative '{element}' "
+                "to Alt, but it is already its default element. Not adding it "
+                "again."
+            )
+        elif element in self.alternatives:
+            warnings.warn(
+                f"{self}': Trying to set new alternative '{element}' "
+                "to Alt, but it is already in Alt. Not adding it again."
+            )
+
+        # Otherwise, add it
+        else:
+            super()._append(element)
+
+    def add_alternative(self, element: ObjectType) -> None:
+        """Add an alternative to Alt.
+
+        Args:
+            element (Resource | IRI | Literal | Any):
+                New alternative to add to Alt.
+        """
+        self._append(element)
+
+    def any_alternative(self) -> Optional[ObjectType]:
+        """Return any alternative of Alt.
+
+        Returns:
+            Resource | IRI | Literal | Any | None:
+                If any, random alternative from Alt. Otherwise, None.
+        """
+
+        # If Alt does not have any elements, return None
+        if len(self._elements) < 2:
+            return None
+
+        # Randomly pick element
+        element = rd.choice(self.elements[1:])
+
+        return element
+
+    def copy(self, **kwargs) -> "Alt":
+        """Return a shallow copy of Alt."""
+
+        if self._elements:
+            return self.__class__(
+                self.graph,
+                default=self._elements[0],
+                alternatives=self._elements[1:],
+                **kwargs,
+            )
+        return self.__class__(self.graph, **kwargs)
+
+    def count(self, element: ObjectType) -> int:
+        """Count the number of times element appears in Alt.
+
+        Args:
+            element (Resource | IRI | Literal | Any):
+                Element to look for in Alt.
+
+        Returns:
+            int: Number of times element appears in Alt.
+        """
+
+        warnings.warn(
+            f"{self}: Calling Alt's 'count()' method does not make sense, as "
+            "Alt does not allow duplicated values. Prefer using the 'in' "
+            "operator."
+        )
+
+        # Duplicated values are not allowed in Alt, value is 1 or 0
+        return int(element in self)
+
     @warning_remove_default
-    def discard_element(
-        self, element: ObjectType, n: Optional[int] = None
-    ) -> None:
+    def discard_element(self, element: ObjectType) -> None:
         """Remove element from Alt,
            without raising error if it was not present.
 
         Args:
             element (Resource | IRI | Literal | Any):
                 Element to remove from Alt.
-            n (int | None, optional): Max number of elements to remove from Alt.
         """
-
-        super().discard_element(element, n=n)
+        super().discard_element(element)
 
     @warning_remove_default
-    def remove_element(
-        self, element: ObjectType, n: Optional[int] = None
-    ) -> None:
+    def remove_element(self, element: ObjectType) -> None:
         """Remove element from Alt,
            and raise an error if it was not present.
 
         Args:
             element (Resource | IRI | Literal | Any):
                 Element to remove from Alt.
-            n (int | None, optional): Max number of elements to remove from Alt.
         """
-
-        super().remove_element(element, n=n)
+        super().remove_element(element)

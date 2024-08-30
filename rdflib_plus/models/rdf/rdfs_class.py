@@ -21,8 +21,8 @@ from rdflib_plus.models.utils.types import (
     IdentifierType,
     LangType,
 )
-from rdflib_plus.namespaces import DEFAULT_NAMESPACE
-from rdflib_plus.utils import format_label
+from rdflib_plus.namespaces import DEFAULT_NAMESPACE, stringify_iri
+from rdflib_plus.utils import format_label, legalize_for_iri
 
 # Define specific custom type
 SuperClassType = Union["Class", IRI, list[Union["Class", IRI]]]
@@ -112,11 +112,11 @@ class Class(Resource):
                 # using superclass's path (if it is a Class), or
                 # superclass's fragment (if it is an IRI)
                 if hierarchical_path:
-                    if isinstance(super_class, Class):
-                        path = super_class.path
-                        path.append(super_class.id)
-                    else:
-                        path = [super_class.fragment]
+                    path = (
+                        super_class.path + [legalize_for_iri(super_class.id)]
+                        if isinstance(super_class, Class)
+                        else [super_class.fragment]
+                    )
 
                 # Turn superclass into a list for convenience
                 super_class = [super_class]
@@ -152,8 +152,71 @@ class Class(Resource):
                 # Add hierarchical relation in the graph
                 self.add(self._parent_property, class_iri)
 
-    @staticmethod
-    def _format_identifier(identifier: str) -> str:
+    def __call__(
+        self,
+        graph: Optional[GraphType] = None,
+        identifier: Optional[IdentifierType] = None,
+        label: Optional[str] = None,
+        lang: LangType = DEFAULT_LANGUAGE,
+        check_triples: Optional[bool] = None,
+    ) -> Resource:
+        """Create instance of Class.
+
+        Args:
+            graph (Graph | MultiGraph | None, optional):
+                Graph to search or create instance into. Defaults to None.
+            identifier (str | int | None, optional):
+                Instance's identifier. Defaults to None.
+            label (str | None, optional):
+                Instance's label. Defaults to None.
+            lang (str | None, optional):
+                Instance's language. Defaults to DEFAULT_LANGUAGE.
+            check_triples (bool | None, optional):
+                Whether to check triples that are added or set using Resource.
+                Defaults to None.
+
+        Returns:
+            Resource: Instance of Class.
+        """
+
+        # If no graph was specified, use Class's one
+        if graph is None:
+            graph = self._graph
+
+        # If check_triples was not specified, use Class's one
+        if check_triples is None:
+            check_triples = self._check_triples
+
+        # If Class's instances should blank nodes
+        if self.bnode:
+            # If an identifier was specified
+            if identifier is not None:
+                # Raise an error
+                raise ValueError(
+                    f"{self}: Trying to create instance as a blank node, "
+                    f"but an identifier is specified ('{identifier}')."
+                )
+
+            # If a label was specified
+            if label is not None:
+                # Raise an error
+                raise ValueError(
+                    f"{self}: Trying to create instance as a blank node, "
+                    f"but a label is specified ('{label}')."
+                )
+
+        # Create instance of Class
+        instance = self.instance(
+            graph,
+            label=label,
+            path=self._path,
+            lang=lang,
+        )
+
+        return instance
+
+    @classmethod
+    def _format_identifier(cls, identifier: str) -> str:
         """Format Class's identifier (in PascalCase).
 
         Args:
@@ -171,8 +234,8 @@ class Class(Resource):
         if identifier != identifier_formatted:
             # Raise a warning
             warnings.warn(
-                f"Formatting Resource's identifier '{identifier}' into "
-                f"'{identifier_formatted}'."
+                f"{stringify_iri(cls._type)} '{identifier}': Formatting "
+                f"identifier '{identifier}' into '{identifier_formatted}'."
             )
 
         return identifier_formatted
@@ -258,69 +321,6 @@ class Class(Resource):
                 "_constraints": self.constraints_instance,
             },
         )
-
-    def __call__(
-        self,
-        graph: Optional[GraphType] = None,
-        identifier: Optional[IdentifierType] = None,
-        label: Optional[str] = None,
-        lang: LangType = DEFAULT_LANGUAGE,
-        check_triples: Optional[bool] = None,
-    ) -> Resource:
-        """Create instance of Class.
-
-        Args:
-            graph (Graph | MultiGraph | None, optional):
-                Graph to search or create instance into. Defaults to None.
-            identifier (str | int | None, optional):
-                Instance's identifier. Defaults to None.
-            label (str | None, optional):
-                Instance's label. Defaults to None.
-            lang (str | None, optional):
-                Instance's language. Defaults to DEFAULT_LANGUAGE.
-            check_triples (bool | None, optional):
-                Whether to check triples that are added or set using Resource.
-                Defaults to None.
-
-        Returns:
-            Resource: Instance of Class.
-        """
-
-        # If no graph was specified, use Class's one
-        if graph is None:
-            graph = self._graph
-
-        # If check_triples was not specified, use Class's one
-        if check_triples is None:
-            check_triples = self._check_triples
-
-        # If Class's instances should blank nodes
-        if self.bnode:
-            # If an identifier was specified
-            if identifier is not None:
-                # Raise an error
-                raise ValueError(
-                    f"{self}: Trying to create instance as a blank node, "
-                    f"but an identifier is specified ('{identifier}')."
-                )
-
-            # If a label was specified
-            if label is not None:
-                # Raise an error
-                raise ValueError(
-                    f"{self}: Trying to create instance as a blank node, "
-                    f"but a label is specified ('{label}')."
-                )
-
-        # Create instance of Class
-        instance = self.instance(
-            graph,
-            label=label,
-            path=self._path,
-            lang=lang,
-        )
-
-        return instance
 
     @classmethod
     def format_fragment(

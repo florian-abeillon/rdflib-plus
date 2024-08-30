@@ -14,7 +14,7 @@ from tests.utils import cartesian_product
 
 
 @pytest.mark.parametrize(
-    "model,model_name,model_type, properties", PARAMETERS_BLANK_NODE_OBJECTS
+    "model, model_name, model_type, properties", PARAMETERS_BLANK_NODE_OBJECTS
 )
 def test_init_blank_node_object(
     model: type, model_name: str, model_type: IRI, properties: set[IRI]
@@ -22,11 +22,13 @@ def test_init_blank_node_object(
     """Test blank node object creation."""
 
     # Test constructor
-    _ = check_init_blank_node_object(model, model_name, model_type, properties)
+    resource = check_init_blank_node_object(
+        model, model_name, model_type, properties
+    )
 
 
 @pytest.mark.parametrize(
-    "model,model_name,model_type,properties,namespace,local",
+    "model, model_name, model_type, properties, namespace, local",
     cartesian_product(
         PARAMETERS_BLANK_NODE_OBJECTS, PARAMETERS_NAMESPACES, [True, False]
     ),
@@ -55,7 +57,7 @@ def test_init_blank_node_object_within_namespace(
     add_triples = [(DCTERMS.source, source)]
 
     # Test constructor
-    _ = check_init_blank_node_object(
+    resource = check_init_blank_node_object(
         model,
         model_name,
         model_type,

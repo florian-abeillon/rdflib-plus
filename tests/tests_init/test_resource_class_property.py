@@ -10,14 +10,14 @@ from tests.parameters import (
     PARAMETERS_PROPERTY,
     PARAMETERS_RESOURCE,
 )
-from tests.tests_init.utils import check_init_labeled_object, get_label
-from tests.utils import cartesian_product
+from tests.tests_init.utils import check_init_labeled_object
+from tests.utils import cartesian_product, get_label
 
 
 @pytest.mark.parametrize(
-    "model,model_name,model_type,properties,camel_case,pascal_case,"
-    "label,legal_label,label_camel_case,legal_label_camel_case,"
-    "label_pascal_case,legal_label_pascal_case,type_in_iri",
+    "model, model_name, model_type, properties, camel_case, pascal_case,"
+    "label, legal_label, label_camel_case, legal_label_camel_case,"
+    "label_pascal_case, legal_label_pascal_case, type_in_iri",
     cartesian_product(
         [
             (
@@ -69,10 +69,8 @@ def test_init_with_type_in_iri(
     label = Literal(label_formatted, datatype=XSD.string)
     legal_identifier = legal_label_formatted
 
-    print(">>", model_name)
-
     # Test constructor
-    _ = check_init_labeled_object(
+    resource = check_init_labeled_object(
         model,
         model_name,
         model_type,

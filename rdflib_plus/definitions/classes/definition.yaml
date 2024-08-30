@@ -30,6 +30,18 @@ rdfs:Container:
   properties:
     - rdfs:member
 
+rdf:Alt:
+
+  super_class: rdfs:Container
+
+rdf:Bag:
+
+  super_class: rdfs:Container
+
+rdf:Seq:
+
+  super_class: rdfs:Container
+
 rdf:List:
 
   super_class: rdfs:Resource
@@ -48,18 +60,18 @@ owl:Ontology:
     - owl:priorVersion
     - owl:imports
 
-# owl:FunctionalProperty:
+owl:FunctionalProperty:
 
-#   super_class: rdf:Property
+  super_class: rdf:Property
 
-# owl:InverseFunctionalProperty:
+owl:InverseFunctionalProperty:
 
-#   super_class: rdf:Property
+  super_class: rdf:Property
 
-# owl:SymmetricProperty:
+owl:SymmetricProperty:
 
-#   super_class: rdf:Property
+  super_class: rdf:Property
 
-# owl:TransitiveProperty:
+owl:TransitiveProperty:
 
-#   super_class: rdf:Property
+  super_class: rdf:Property

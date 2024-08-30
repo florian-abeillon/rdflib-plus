@@ -1,7 +1,6 @@
 """Useful functions for testing constructors"""
 
 import re
-from copy import deepcopy
 from typing import Any, Optional
 
 from rdflib import DCTERMS, RDF, SKOS, XSD, Literal, Namespace
@@ -31,7 +30,7 @@ def check_init(
     add_triples: Optional[list[tuple[IRI, Any]]] = None,
     type_in_iri: bool = True,
     check_triples: bool = True,
-) -> tuple[SimpleGraph | MultiGraph, Resource]:
+) -> Resource:
     """Test object creation."""
 
     # Initialize graph, and create object
@@ -111,7 +110,7 @@ def check_init(
         # Check that all triples are in the graph
         check_graph_triples(graph, triples, exact=True)
 
-    return graph, resource
+    return resource
 
 
 def check_init_labeled_object(
@@ -132,7 +131,7 @@ def check_init_labeled_object(
     add_triples: Optional[list[tuple[IRI, Any]]] = None,
     type_in_iri: bool = True,
     check_triples: bool = True,
-) -> tuple[SimpleGraph | MultiGraph, Resource]:
+) -> Resource:
     """Test labeled object creation."""
 
     return check_init(
@@ -169,7 +168,7 @@ def check_init_blank_node_object(
     path_joined: str = "",
     add_triples: Optional[list[tuple[IRI, Any]]] = None,
     check_triples: bool = True,
-) -> tuple[SimpleGraph | MultiGraph, Resource]:
+) -> Resource:
     """Test blank node object creation."""
 
     return check_init(
@@ -186,33 +185,6 @@ def check_init_blank_node_object(
         add_triples=add_triples,
         check_triples=check_triples,
     )
-
-
-def get_label(
-    camel_case: bool,
-    pascal_case: bool,
-    label: str,
-    legal_label: str,
-    label_camel_case: str,
-    legal_label_camel_case: str,
-    label_pascal_case: str,
-    legal_label_pascal_case: str,
-) -> tuple[str, str, str]:
-    """Get necessary labels for resource object creation."""
-
-    # Get appropriate label
-    if camel_case or pascal_case:
-        if camel_case:
-            label = label_camel_case
-            legal_label = legal_label_camel_case
-        else:
-            label = label_pascal_case
-            legal_label = legal_label_pascal_case
-        sep = "/"
-    else:
-        sep = "#"
-
-    return (label, legal_label, sep)
 
 
 def format_elements(
@@ -249,7 +221,6 @@ def format_elements(
 
 def check_container_predicates(
     elements: list[IRI | Literal | Any],
-    graph: SimpleGraph | MultiGraph,
     resource: Resource,
 ) -> None:
     """Check that elements are related to resource with
@@ -258,7 +229,7 @@ def check_container_predicates(
     # For each element
     for element in set(elements):
         # For each triple that connects it to the collection object
-        for s, p, o in graph.triples((resource.iri, None, element)):
+        for s, p, o in resource.graph.triples((resource.iri, None, element)):
             # Check that predicate has the appropriate format
             assert isinstance(p, IRI)
             assert p.defrag() + "#" == IRI(RDF)
@@ -275,7 +246,7 @@ def check_elements(
     assert hasattr(resource, "elements")
     resource_elements = getattr(resource, "elements")
 
-    # Check that Collection's "element" attribute has the appropriate
+    # Check that Collection's "elements" attribute has the appropriate
     # number of elements
     assert len(resource_elements) == len(elements)
 
@@ -293,35 +264,36 @@ def check_init_alt(
 
     # Set kwargs to be used by constructor
     # alternatives.copy() as alternatives are mutable
-    kwargs = {"default": default, "alternatives": deepcopy(alternatives)}
+    kwargs = {"default": default, "alternatives": alternatives}
 
     # Format elements
-    element_list = []
+    element_list = set()
     if default is not None:
-        element_list.append(default)
+        element_list.add(default)
     if alternatives is not None:
-        element_list.extend(alternatives)
+        element_list.update(alternatives)
     elements = format_elements(element_list)
     add_triples = [(None, element) for element in elements]
 
     # Test constructor
-    graph, resource = check_init_blank_node_object(
+    alt = check_init_blank_node_object(
         *PARAMETERS_ALT,
         kwargs=kwargs,
         add_triples=add_triples,
     )
 
     # Check Alt's "elements" attribute
-    check_elements(resource, element_list)
+    check_elements(alt, element_list)
 
     # Check default element
-    assert hasattr(resource, "default")
+    assert hasattr(alt, "default")
+    alt_default = getattr(alt, "default")
     if default is not None:
-        assert getattr(resource, "default") == default
+        assert alt_default == default
     elif alternatives is not None and len(alternatives) > 0:
-        assert getattr(resource, "default") in alternatives
+        assert alt_default == alternatives[0]
     else:
-        assert getattr(resource, "default") is None
+        assert alt_default is None
 
     # Check that elements are related to resource with appropriate properties
-    check_container_predicates(elements, graph, resource)
+    check_container_predicates(elements, alt)

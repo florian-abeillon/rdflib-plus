@@ -29,7 +29,6 @@ PARAMETERS_ELEMENTS_LITERAL_LANGSTRING = [
     )
 ]
 
-
 # 0 - Integer element (int)
 PARAMETERS_ELEMENTS_INTEGER = [
     0,
@@ -42,8 +41,6 @@ PARAMETERS_ELEMENTS_LITERAL_INTEGER = [
     Literal(integer, datatype=XSD.integer)
     for integer in PARAMETERS_ELEMENTS_INTEGER
 ]
-
-
 # 0 - Float element (double)
 PARAMETERS_ELEMENTS_DOUBLE = [
     0.0,
@@ -56,7 +53,6 @@ PARAMETERS_ELEMENTS_LITERAL_DOUBLE = [
     Literal(float_, datatype=XSD.double)
     for float_ in PARAMETERS_ELEMENTS_DOUBLE
 ]
-
 
 # 0 - Boolean element (bool)
 PARAMETERS_ELEMENTS_BOOLEAN = [

@@ -3,6 +3,7 @@
 import pytest
 from rdflib import DCTERMS, RDF, RDFS, XSD, Literal
 from rdflib import URIRef as IRI
+
 from rdflib_plus import SimpleGraph
 from tests.parameters import (
     PARAMETERS_IDENTIFIERS,
@@ -19,13 +20,11 @@ from tests.utils import (
     check_graph_triples,
 )
 
-# TODO: Test constraints
-
 
 @pytest.mark.parametrize(
-    "identifier,legal_identifier,datatype", PARAMETERS_IDENTIFIERS
+    "identifier, legal_identifier, datatype", PARAMETERS_IDENTIFIERS
 )
-def test_init_resource_with_identifier(
+def test_init_with_identifier(
     identifier: str | int,
     legal_identifier: str,
     datatype: IRI,
@@ -39,7 +38,7 @@ def test_init_resource_with_identifier(
     identifier = Literal(identifier, datatype=datatype)
 
     # Test constructor
-    _ = check_init_labeled_object(
+    resource = check_init_labeled_object(
         *PARAMETERS_RESOURCE,
         identifier,
         legal_identifier,
@@ -48,11 +47,12 @@ def test_init_resource_with_identifier(
 
 
 @pytest.mark.parametrize(
-    "identifier,legal_identifier,datatype,label,legal_label,label_camel_case,"
-    "legal_label_camel_case,label_pascal_case,legal_label_pascal_case",
+    "identifier, legal_identifier, datatype, label, legal_label,"
+    "label_camel_case, legal_label_camel_case, label_pascal_case,"
+    "legal_label_pascal_case",
     cartesian_product(PARAMETERS_IDENTIFIERS, PARAMETERS_LABELS),
 )
-def test_init_resource_with_identifier_and_label(
+def test_init_with_identifier_and_label(
     identifier: str | int,
     legal_identifier: str,
     datatype: IRI,
@@ -73,7 +73,7 @@ def test_init_resource_with_identifier_and_label(
     label = Literal(label, datatype=XSD.string)
 
     # Test constructor
-    _ = check_init_labeled_object(
+    resource = check_init_labeled_object(
         *PARAMETERS_RESOURCE,
         identifier,
         legal_identifier,
@@ -83,13 +83,14 @@ def test_init_resource_with_identifier_and_label(
 
 
 @pytest.mark.parametrize(
-    "identifier,legal_identifier,datatype,label,legal_label,label_camel_case,"
-    "legal_label_camel_case,label_pascal_case,legal_label_pascal_case,lang",
+    "identifier, legal_identifier, datatype, label, legal_label,"
+    "label_camel_case, legal_label_camel_case, label_pascal_case,"
+    "legal_label_pascal_case, lang",
     cartesian_product(
         PARAMETERS_IDENTIFIERS, PARAMETERS_LABELS, PARAMETERS_LANGS
     ),
 )
-def test_init_resource_with_identifier_and_label_and_lang(
+def test_init_with_identifier_and_label_and_lang(
     identifier: str | int,
     legal_identifier: str,
     datatype: IRI,
@@ -115,7 +116,7 @@ def test_init_resource_with_identifier_and_label_and_lang(
     label = Literal(label, lang=lang)
 
     # Test constructor
-    _ = check_init_labeled_object(
+    resource = check_init_labeled_object(
         *PARAMETERS_RESOURCE,
         identifier,
         legal_identifier,
@@ -125,9 +126,9 @@ def test_init_resource_with_identifier_and_label_and_lang(
 
 
 @pytest.mark.parametrize(
-    "identifier,legal_identifier,datatype", PARAMETERS_IDENTIFIERS
+    "identifier, legal_identifier, datatype", PARAMETERS_IDENTIFIERS
 )
-def test_init_resource_with_iri(
+def test_init_with_iri(
     identifier: str | int,
     legal_identifier: str,
     datatype: IRI,
@@ -167,8 +168,8 @@ def test_init_resource_with_iri(
     check_graph_triples(graph, triples, exact=True)
 
 
-@pytest.mark.parametrize("path,path_joined", PARAMETERS_PATHS)
-def test_init_resource_with_path(path: list[str], path_joined: str):
+@pytest.mark.parametrize("path, path_joined", PARAMETERS_PATHS)
+def test_init_with_path(path: list[str], path_joined: str):
     """Test Resource creation with a path."""
 
     # Arbitrarily select first identifier
@@ -181,7 +182,7 @@ def test_init_resource_with_path(path: list[str], path_joined: str):
     identifier = Literal(identifier, datatype=datatype)
 
     # Test constructor
-    _ = check_init_labeled_object(
+    resource = check_init_labeled_object(
         *PARAMETERS_RESOURCE,
         identifier,
         legal_identifier,

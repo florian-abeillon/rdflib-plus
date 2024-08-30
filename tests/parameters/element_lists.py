@@ -18,7 +18,8 @@ from tests.parameters.elements import (
     PARAMETERS_ELEMENTS_STRING,
 )
 
-# 0 - List of elements and their respective literal (list[IRI | Literal | Any])
+# 0 - List of elements and as they should appear in the graph
+#     (list[IRI | Literal | Any])
 PARAMETERS_ELEMENT_LISTS: list[list[IRI | Literal | Any]] = [
     # Empty list
     [],

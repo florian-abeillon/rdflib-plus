@@ -11,22 +11,6 @@ from rdflib_plus import MultiGraph, Resource, SimpleGraph
 SEED = 1
 
 
-def cartesian_product(*args):
-    """Return cartesian product of multiple lists."""
-
-    return [
-        list(
-            itertools.chain(
-                *[
-                    element if isinstance(element, tuple) else [element]
-                    for element in combination
-                ]
-            )
-        )
-        for combination in itertools.product(*args)
-    ]
-
-
 def build_iri(
     identifier: str,
     namespace: Optional[Namespace | str] = None,
@@ -52,6 +36,22 @@ def build_iri(
     return IRI(iri)
 
 
+def cartesian_product(*args) -> list[list]:
+    """Return cartesian product of multiple lists."""
+
+    return [
+        list(
+            itertools.chain(
+                *[
+                    element if isinstance(element, tuple) else [element]
+                    for element in combination
+                ]
+            )
+        )
+        for combination in itertools.product(*args)
+    ]
+
+
 def check_attributes(resource: Resource, **kwargs):
     """Check attribute values of resource."""
 
@@ -59,15 +59,15 @@ def check_attributes(resource: Resource, **kwargs):
     for attribute, value in kwargs.items():
         # Check that resource has attribute
         assert hasattr(resource, attribute)
-        print(resource, attribute)
-        print(
-            getattr(resource, attribute) == value,
-            getattr(resource, attribute),
-            type(getattr(resource, attribute)),
-            value,
-            type(value),
-        )
-        print("------------------")
+        # print(resource, attribute)
+        # print(
+        #     getattr(resource, attribute) == value,
+        #     getattr(resource, attribute),
+        #     type(getattr(resource, attribute)),
+        #     value,
+        #     type(value),
+        # )
+        # print("------------------")
 
         # Check that attribute has the right value
         assert getattr(resource, attribute) == value
@@ -93,3 +93,30 @@ def check_graph_triples(
     if exact:
         # Check that graph is exactly the set of triples
         assert len(graph) == len(triples)
+
+
+def get_label(
+    camel_case: bool,
+    pascal_case: bool,
+    label: str,
+    legal_label: str,
+    label_camel_case: str,
+    legal_label_camel_case: str,
+    label_pascal_case: str,
+    legal_label_pascal_case: str,
+) -> tuple[str, str, str]:
+    """Get necessary labels for resource object creation."""
+
+    # Get appropriate label
+    if camel_case or pascal_case:
+        if camel_case:
+            label = label_camel_case
+            legal_label = legal_label_camel_case
+        else:
+            label = label_pascal_case
+            legal_label = legal_label_pascal_case
+        sep = "/"
+    else:
+        sep = "#"
+
+    return (label, legal_label, sep)

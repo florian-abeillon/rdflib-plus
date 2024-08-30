@@ -1,6 +1,6 @@
 """Object collection constructor"""
 
-from typing import Optional, Union
+from typing import Iterable, Optional, Union
 
 from rdflib import Namespace
 from rdflib import URIRef as IRI
@@ -37,6 +37,7 @@ class Collection(Resource):
     def __init__(
         self,
         graph: GraphType,
+        # Typehint: Optional[list[ObjectType] | "Collection"]
         elements: Optional[list[ObjectType]] = None,
         namespace: Optional[Namespace] = None,
         local: bool = False,
@@ -50,7 +51,9 @@ class Collection(Resource):
             elements (
                 list[
                     Resource | IRI | Literal | Any
-                ] | None,
+                ]
+                | Collection
+                | None,
                 optional
             ):
                 Elements to put in Collection at its creation.
@@ -79,8 +82,34 @@ class Collection(Resource):
 
         # If some elements are specified
         if elements is not None:
+            # If elements is a Collection, extract its elements
+            if isinstance(elements, Collection):
+                elements = elements.elements
+
             # Add them as attribute, and set them in the graph at the same time
             self.elements = elements
+
+    def __contains__(self, element: ObjectType) -> bool:
+        """Check wether element is already in Collection.
+
+        Args:
+            element (Resource | IRI | Literal | Any):
+                Element to look for in Collection.
+
+        Returns:
+            bool: Whether element is already in Collection.
+        """
+
+        return element in self._elements
+
+    def __iter__(self) -> Iterable:
+        """Returns an iterator on the elements of Collection.
+
+        Returns:
+            Iterable: Iterator on elements of Collection.
+        """
+
+        return iter(self._elements)
 
     def __len__(self) -> int:
         """Returns the number of elements in Collection.
@@ -96,8 +125,7 @@ class Collection(Resource):
 
         type_ = self.__class__.__name__
         elements = [str(element) for element in self._elements]
-        elements = ", ".join(elements)
-        return f"{type_}({elements})"
+        return f"{type_}({', '.join(elements)})"
 
     def _format_index(self, index: int) -> int:
         """Turn negative indices into "real" (positive) index.
@@ -117,7 +145,7 @@ class Collection(Resource):
             index += len(self)
 
         # If index is not in range
-        if not 0 <= index < len(self):
+        if len(self) > 0 and not 0 <= index < len(self):
             # If index is still negative, set it back to its original value
             if index < 0:
                 index -= len(self)
@@ -147,7 +175,11 @@ class Collection(Resource):
         # Format element for graph input
         element = self._format_resource(element, is_object=True)
 
-        # Increment end, so that end-th element is also considered
+        # Format end index
+        start = self._format_index(start)
+        end = self._format_index(end)
+
+        # Incremeant end, so that end-th element is also considered
         end += 1
 
         # For every element in elements list
@@ -168,17 +200,26 @@ class Collection(Resource):
         # If element is not found in the list, raise an error
         raise ValueError(f"{element} is not in List")
 
-    def _pop(self, index: int = 0) -> ObjectType:
-        """Delete and return element of Collection at given index."""
+    def _append(self, element: ObjectType) -> None:
+        """Append element to the end of Collection."""
         raise NotImplementedError
 
-    def append(self, element: ObjectType) -> None:
-        """Append element to the end of Collection."""
+    def _pop(self, index: int) -> ObjectType:
+        """Delete and return element of Collection at given index."""
         raise NotImplementedError
 
     def clear(self) -> None:
         """Remove all elements of Collection."""
         raise NotImplementedError
+
+    def copy(self) -> "Collection":
+        """Return a shallow copy of the Collection object."""
+
+        return self.__class__(
+            self.graph,
+            elements=self._elements,
+            check_triples=self._check_triples,
+        )
 
     def count(self, element: ObjectType) -> int:
         """Count the number of times element appears in Collection.
@@ -211,35 +252,23 @@ class Collection(Resource):
 
         return count
 
-    def discard_element(
-        self, element: ObjectType, n: Optional[int] = None
-    ) -> None:
-        """Remove element from Collection,
+    def discard_element(self, element: ObjectType) -> None:
+        """Remove the first instance of an element from Collection,
            without raising error if it was not present.
 
         Args:
             element (Resource | IRI | Literal | Any):
                 Element to remove from Collection.
-            n (int | None, optional):
-                Max number of elements to remove from Collection.
         """
 
-        # If n was not specified
-        if n is None:
-            # Set it as the number of elements in Collection
-            n = len(self._elements)
+        # Try to remove element
+        try:
+            self.remove_element(element)
 
-        # As long as there are elements with this value in Collection
-        for _ in range(n):
-            try:
-                # Get index of element, and remove it
-                index = self._index(element)
-                _ = self._pop(index=index)
-
-            except ValueError:
-                # If no element with this value is in Collection,
-                # break out from loop
-                break
+        # If no element with this value is in Collection,
+        # do nothing
+        except ValueError:
+            pass
 
     def extend(
         self, new_elements: Union["Collection", list[ObjectType]]
@@ -261,31 +290,19 @@ class Collection(Resource):
         # For every new element
         for new_element in new_elements:
             # Append it to Collection
-            self.append(new_element)
+            self._append(new_element)
 
-    # def remove(self, element: ObjectType) -> None:
-    def remove_element(
-        self, element: ObjectType, n: Optional[int] = None
-    ) -> None:
-        """Remove element from Collection,
+    def remove_element(self, element: ObjectType) -> None:
+        """Remove the first instance of an element from Collection,
            and raise an error if it was not present.
 
         Args:
             element (Resource | IRI | Literal | Any):
                 Element to remove from Collection.
-            n (int | None, optional):
-                Max number of elements to remove from Collection.
         """
 
         # Get index of element in Collection
         index = self._index(element)
 
         # Remove it from Collection
-        _ = self._pop(index=index)
-
-        # If n was specified, decrement it
-        if n is not None:
-            n -= 1
-
-        # Try to remove other instances of element, until none are left
-        self.discard_element(element, n=n)
+        _ = self._pop(index)

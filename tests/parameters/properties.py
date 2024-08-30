@@ -2,13 +2,113 @@
 
 from rdflib import DCTERMS, OWL, RDF, RDFS, SKOS
 
-PARAMETERS_PROPERTIES_RESOURCE = {
-    DCTERMS.identifier,
-    DCTERMS.source,
-    RDF.type,
-    SKOS.prefLabel,
-    SKOS.altLabel,
+from tests.parameters import (
+    PARAMETERS_ELEMENTS_DOUBLE_WITH_CHECK,
+    PARAMETERS_ELEMENTS_INTEGER_WITH_CHECK,
+    PARAMETERS_ELEMENTS_IRI_WITH_CHECK,
+    PARAMETERS_ELEMENTS_LITERAL_DOUBLE_WITH_CHECK,
+    PARAMETERS_ELEMENTS_LITERAL_INTEGER_WITH_CHECK,
+    PARAMETERS_ELEMENTS_LITERAL_LANGSTRING_WITH_CHECK,
+    PARAMETERS_ELEMENTS_LITERAL_STRING_WITH_CHECK,
+    PARAMETERS_ELEMENTS_STRING_WITH_CHECK,
+    PARAMETERS_LABELS,
+)
+from tests.utils import build_iri, cartesian_product
+
+# PARAMETERS_PROPERTIES_RESOURCE = {
+#     DCTERMS.identifier,
+#     DCTERMS.source,
+#     RDF.type,
+#     SKOS.prefLabel,
+#     SKOS.altLabel,
+# }
+
+parameters_elements_iri_resource_with_check = [
+    (label, build_iri(legal_label))
+    for (
+        label,
+        legal_label,
+        label_PascalCase,
+        legal_label_PascalCase,
+        label_camelCase,
+        legal_label_camelCase,
+    ) in PARAMETERS_LABELS
+]
+parameters_elements_iri_class_with_check = [
+    (
+        label,
+        build_iri(legal_label_PascalCase, model_name="Class", sep="/"),
+    )
+    for (
+        label,
+        legal_label,
+        label_PascalCase,
+        legal_label_PascalCase,
+        label_camelCase,
+        legal_label_camelCase,
+    ) in PARAMETERS_LABELS
+]
+
+PARAMETERS_PROPERTIES_TO_OBJECTS_RESOURCE = {
+    DCTERMS.identifier: [
+        *cartesian_product(PARAMETERS_ELEMENTS_STRING_WITH_CHECK, [False]),
+        *cartesian_product(
+            PARAMETERS_ELEMENTS_LITERAL_STRING_WITH_CHECK, [False]
+        ),
+        *cartesian_product(
+            PARAMETERS_ELEMENTS_LITERAL_LANGSTRING_WITH_CHECK, [False]
+        ),
+        *cartesian_product(PARAMETERS_ELEMENTS_INTEGER_WITH_CHECK, [False]),
+        *cartesian_product(
+            PARAMETERS_ELEMENTS_LITERAL_INTEGER_WITH_CHECK, [False]
+        ),
+        # *cartesian_product(PARAMETERS_ELEMENTS_DOUBLE_WITH_CHECK, [False]),
+        # *cartesian_product(
+        #     PARAMETERS_ELEMENTS_LITERAL_DOUBLE_WITH_CHECK, [False]
+        # ),
+    ],
+    DCTERMS.source: [
+        *cartesian_product(PARAMETERS_ELEMENTS_IRI_WITH_CHECK, [False]),
+        *cartesian_product(
+            parameters_elements_iri_resource_with_check, [True]
+        ),
+    ],
+    RDF.type: [
+        *[
+            (iri, iri, False)
+            for identifier, iri in parameters_elements_iri_class_with_check
+        ],
+        *cartesian_product(parameters_elements_iri_class_with_check, [True]),
+    ],
+    SKOS.prefLabel: [
+        *cartesian_product(PARAMETERS_ELEMENTS_STRING_WITH_CHECK, [False]),
+        *cartesian_product(
+            PARAMETERS_ELEMENTS_LITERAL_STRING_WITH_CHECK, [False]
+        ),
+        *cartesian_product(
+            PARAMETERS_ELEMENTS_LITERAL_LANGSTRING_WITH_CHECK, [False]
+        ),
+        # TODO: Add integers etc. with string Literal?
+    ],
+    SKOS.altLabel: [
+        *cartesian_product(PARAMETERS_ELEMENTS_STRING_WITH_CHECK, [False]),
+        *cartesian_product(
+            PARAMETERS_ELEMENTS_LITERAL_STRING_WITH_CHECK, [False]
+        ),
+        *cartesian_product(
+            PARAMETERS_ELEMENTS_LITERAL_LANGSTRING_WITH_CHECK, [False]
+        ),
+    ],
 }
+
+PARAMETERS_PROPERTIES_RESOURCE = (
+    PARAMETERS_PROPERTIES_TO_OBJECTS_RESOURCE.keys()
+)
+PARAMETERS_PROPERTIES_OBJECTS_RESOURCE = [
+    (property_, *objects)
+    for property_, objects_list in PARAMETERS_PROPERTIES_TO_OBJECTS_RESOURCE.items()
+    for objects in objects_list
+]
 
 PARAMETERS_PROPERTIES_CLASS = {
     RDFS.subClassOf,

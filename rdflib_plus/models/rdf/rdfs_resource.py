@@ -63,6 +63,7 @@ class Resource(RdflibResource):
     # Resource's property constraints
     _constraints: ConstraintsType = RDFS_CLASSES[_type]["constraints"]
 
+    # TODO: Find a better way to do it?
     @classmethod
     def update_constraints(
         cls, constraints: ConstraintsType
@@ -78,7 +79,7 @@ class Resource(RdflibResource):
             PropertyConstraintsType: Resource constraints, updated with
                                      child class's specific constraints.
         """
-        return {**cls._constraints, **constraints}
+        return {**constraints, **cls._constraints}
 
     @property
     def iri(self) -> IRI:
@@ -139,6 +140,11 @@ class Resource(RdflibResource):
         """
 
         return set(self._constraints.keys())
+
+    def __repr__(self) -> IRI:
+        """Unambiguous representation of Resource"""
+
+        return self.iri
 
     def __str__(self) -> str:
         """Human-readable string representation of Resource"""
@@ -226,9 +232,9 @@ class Resource(RdflibResource):
         self._identifier_property = self._format_identifier_property(
             identifier_property, identifier
         )
-        self._lang = self._format_lang(lang, identifier)
-        self._check_triples = check_triples
         self._id = self._format_identifier(identifier)
+        self._lang = self._format_lang(lang)
+        self._check_triples = check_triples
 
         # Keep track of full graph
         full_graph = graph
@@ -252,9 +258,10 @@ class Resource(RdflibResource):
             else:
                 # Raise a warning
                 warnings.warn(
-                    f"{self}: Namespace '{namespace}' provided, but "
-                    "specified graph does not support subgraphs (use "
-                    "rdflib_plus.MultiGraph instead of rdflib_plus.Graph)."
+                    f"{stringify_iri(self._type)} '{identifier}': Namespace "
+                    f"'{namespace}' provided, but specified graph does not "
+                    "support subgraphs (use rdflib_plus.MultiGraph instead of "
+                    "rdflib_plus.Graph)."
                 )
 
         # If no IRI is specified
@@ -277,11 +284,7 @@ class Resource(RdflibResource):
                 # Make the link
                 self.add(DCTERMS.source, IRI(namespace), graph=full_graph)
 
-    def _format_lang(
-        self,
-        lang: Optional[str],
-        identifier: IdentifierType,
-    ) -> Optional[str]:
+    def _format_lang(self, lang: Optional[str]) -> Optional[str]:
         """Set Resource's '_lang' attribute."""
 
         # If a language is specified
@@ -295,7 +298,7 @@ class Resource(RdflibResource):
             except LanguageTagError:
                 # Raise a warning
                 warnings.warn(
-                    f"{stringify_iri(self._type)} '{identifier}': Language "
+                    f"{stringify_iri(self._type)} '{self._id}': Language "
                     f"code '{lang}' could not be parsed according to BCP-47. "
                     "Setting language to None."
                 )
@@ -512,7 +515,9 @@ class Resource(RdflibResource):
 
     @staticmethod
     def _format_resource(
-        resource: ObjectType, is_object: bool = False
+        resource: ObjectType,
+        is_object: bool = False,
+        check_triple: bool = False,
     ) -> IRI | Literal:
         """Format resource for graph input.
 
@@ -521,6 +526,8 @@ class Resource(RdflibResource):
                 Resource to format.
             is_object (bool, optional):
                 Whether resource is object of a triple. Defaults to False
+            check_triple (bool, optional):
+                Whether to check the added triple. Defaults to False.
 
         Returns:
             IRI | Literal: IRI of resource, or value of attribute.
@@ -528,11 +535,14 @@ class Resource(RdflibResource):
 
         # If resource is a Resource, return its IRI
         if isinstance(resource, Resource):
+            # TODO: Check that predicate is indeed a Property
+            # if not is_object and not (resource._type == RDF.Property or "Property" in resource.path)
+            #     warnings.warn()
             return resource.iri
 
         # If resource is not the object of a triple,
         # and is not an IRI (nor a Literal)
-        if not is_object and not isinstance(resource, IRI):
+        if check_triple and not is_object and not isinstance(resource, IRI):
             # Raise an error
             raise TypeError(
                 f"'{resource}' is trying to be used as predicate in a triple, "
@@ -543,7 +553,7 @@ class Resource(RdflibResource):
 
     def _format_p_o(
         self,
-        p: ResourceOrIri,
+        p: Optional[ResourceOrIri],
         o: Optional[ObjectType],
         lang: LangType = DEFAULT_LANGUAGE,
         check_triple: bool = False,
@@ -551,7 +561,7 @@ class Resource(RdflibResource):
         """Prepare predicate and object, to be added to triplestore.
 
         Args:
-            p (Resource | IRI):
+            p (Resource | IRI | None):
                 Predicate of triple.
             o (Resource | IRI | Literal | Any | None):
                 Object of triple.
@@ -574,7 +584,9 @@ class Resource(RdflibResource):
                 raise ValueError("Triple cannot have None as object.")
 
         # Format p for graph input
-        p = self._format_resource(p, is_object=False)
+        p = self._format_resource(
+            p, is_object=False, check_triple=check_triple
+        )
 
         if check_triple:
             # If p is valid with Resource
@@ -624,36 +636,42 @@ class Resource(RdflibResource):
             #     )
 
         # Format o for graph input
-        o = self._format_resource(o, is_object=True)
+        o = self._format_resource(o, is_object=True, check_triple=check_triple)
 
-        # Otherwise, if o is neither a plain IRI nor a Literal
-        if not isinstance(o, (IRI, Literal)) and o is not None:
-            # If o is an empty string, raise warning
-            if o == "":
-                warnings.warn(
-                    f"{self}: Empty string is used as object in triple with "
-                    f"predicate '{stringify_iri(p)}'."
-                )
+        # If an object is specified
+        if o is not None:
+            # If o is neither a plain IRI nor a Literal
+            if not isinstance(o, (IRI, Literal)):
+                # If o is an empty string, raise warning
+                if o == "":
+                    warnings.warn(
+                        f"{self}: Empty string is used as object in triple "
+                        f"with predicate '{stringify_iri(p)}'."
+                    )
 
-            # If no language is specified
-            if lang is None:
-                # Use Resource's language
-                lang = self._lang
+                # If a language is specified
+                if lang is not None:
+                    # Force o to be a string, and specify language
+                    o = Literal(str(o), lang=lang)
 
-            # If o is a string, and no language is specified
+                # Otherwise, if o is a string
+                elif isinstance(o, str):
+                    # If Resource was set with a language, specify it
+                    if self._lang is not None:
+                        o = Literal(o, lang=self._lang)
+                    # Otherwise, specify datatype
+                    else:
+                        o = Literal(o, datatype=XSD.string)
 
-            if isinstance(o, str) and lang is None:
-                # Specify datatype
-                datatype = XSD.string
-            # Otherwise
-            else:
-                # Do not specify datatype (rdflib.Literal() will guess it)
-                datatype = None
+                else:
+                    o = Literal(o)
 
-            # Format o into a Literal
-            o = Literal(o, datatype=datatype, lang=lang)
+            # If o is a Literal, and a language is specified
+            elif lang is not None and isinstance(o, Literal):
+                # Format o into a Literal with appropriate language
+                o = Literal(str(o), lang=lang)
 
-        # If o is a Literal, predicate has a "datatype" constraint
+        # If o is a Literal, and predicate has a "datatype" constraint
         if (
             check_triple
             and isinstance(o, Literal)
@@ -837,7 +855,7 @@ class Resource(RdflibResource):
         graph: Optional[Graph] = None,
         check_triple: Optional[bool] = None,
     ) -> None:
-        """Replace an attribute with another value.
+        """Delete the value of an attribute.
 
         Args:
             p (Resource | IRI):
@@ -857,7 +875,8 @@ class Resource(RdflibResource):
             check_triple = self._check_triples
 
         # Prepare predicate and object
-        p, o = self._format_p_o(p, o, lang=lang, check_triple=check_triple)
+        # (don't check if the triple is valid or not, as it may contain None)
+        p, o = self._format_p_o(p, o, lang=lang, check_triple=False)
 
         # If no graph is specified
         if graph is None:
@@ -868,17 +887,16 @@ class Resource(RdflibResource):
         if check_triple and (self._identifier, p, o) not in graph:
             # Raise a warning
             if o is None:
-                message = (
+                warnings.warn(
                     f"{self}: Failed to remove triples with predicate '{p}' "
                     f"from graph '{graph.identifier}' as none exist."
                 )
             else:
-                message = (
+                warnings.warn(
                     f"{self}: Failed to remove triples with predicate '{p}' "
                     f"from graph '{graph.identifier}' and object '{o}' as it "
                     "does not exist."
                 )
-            warnings.warn(message)
 
         # Remove object o from Resource, using predicate p
         graph.remove((self._identifier, p, o))

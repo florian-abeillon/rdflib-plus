@@ -12,8 +12,10 @@ from tests.parameters import (
     PARAMETERS_LABELS,
     PARAMETERS_PROPERTY,
 )
-from tests.tests_init.utils import get_label
-from tests.utils import SEED, cartesian_product, check_graph_triples
+from tests.utils import SEED, cartesian_product, check_graph_triples, get_label
+
+# Set random seed
+rd.seed(SEED)
 
 
 @pytest.mark.parametrize(
@@ -29,7 +31,6 @@ def test_init_class_with_hierarchical_path_and_type_in_iri(
     graph = SimpleGraph()
 
     # Arbitrarily select labels
-    rd.seed(SEED)
     labels_class, labels_super_class = rd.sample(PARAMETERS_LABELS, 2)
     (
         label_class,
@@ -84,11 +85,9 @@ def test_init_class_with_hierarchical_path_and_type_in_iri(
     label_super_class = Literal(label_super_class, datatype=XSD.string)
 
     # Format identifiers
-    identifier_class = Literal(
-        legal_label_camel_case_class, datatype=XSD.string
-    )
+    identifier_class = Literal(label_camel_case_class, datatype=XSD.string)
     identifier_super_class = Literal(
-        legal_label_camel_case_super_class, datatype=XSD.string
+        label_camel_case_super_class, datatype=XSD.string
     )
 
     # Define triples to look for
@@ -147,7 +146,6 @@ def test_init_property_with_hierarchical_path_and_type_in_iri(
     graph = SimpleGraph()
 
     # Arbitrarily select labels
-    rd.seed(SEED)
     labels_property, labels_super_property = rd.sample(PARAMETERS_LABELS, 2)
     (
         label_property,
@@ -204,10 +202,10 @@ def test_init_property_with_hierarchical_path_and_type_in_iri(
 
     # Format identifiers
     identifier_property = Literal(
-        legal_label_pascal_case_property, datatype=XSD.string
+        label_pascal_case_property, datatype=XSD.string
     )
     identifier_super_property = Literal(
-        legal_label_pascal_case_super_property, datatype=XSD.string
+        label_pascal_case_super_property, datatype=XSD.string
     )
 
     # Define triples to look for
@@ -254,7 +252,7 @@ def test_init_property_with_hierarchical_path_and_type_in_iri(
 
 
 @pytest.mark.parametrize(
-    "model,model_name,model_type,properties,camel_case,pascal_case,"
+    "model, model_name, model_type, properties, camel_case, pascal_case,"
     "type_in_iri",
     cartesian_product([PARAMETERS_CLASS, PARAMETERS_PROPERTY], [True, False]),
 )
@@ -273,7 +271,6 @@ def test_init_class_property_with_type_in_iri(
     graph = SimpleGraph()
 
     # Arbitrarily select label
-    rd.seed(SEED)
     (
         label,
         legal_label,

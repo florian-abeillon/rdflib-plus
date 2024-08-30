@@ -101,15 +101,24 @@ PARAMETERS_LABELS: list[tuple[str, str, str, str, str]] = [
     (
         "label> a rdfs:Resource . <http://evil.com#command> a "
         "<http://evil.com#injection",
-        "label%3E%20a%20rdfs:Resource%20.%20%3Chttp://evil.com%23command%3E"
-        "%20a%20%3Chttp://evil.com%23injection",
+        "label%3E%20a%20rdfs:Resource%20.%20%3Chttp:%2F%2Fevil.com%23command"
+        "%3E%20a%20%3Chttp:%2F%2Fevil.com%23injection",
         "Label> a rdfs:resource . <http://evil.com#command> a "
         "<http://evil.com#injection",
-        "Label%3E%20a%20rdfs:resource%20.%20%3Chttp://evil.com%23command%3E"
-        "%20a%20%3Chttp://evil.com%23injection",
+        "Label%3E%20a%20rdfs:resource%20.%20%3Chttp:%2F%2Fevil.com%23command"
+        "%3E%20a%20%3Chttp:%2F%2Fevil.com%23injection",
         "label> a rdfs:resource . <http://evil.com#command> a "
         "<http://evil.com#injection",
-        "label%3E%20a%20rdfs:resource%20.%20%3Chttp://evil.com%23command%3E"
-        "%20a%20%3Chttp://evil.com%23injection",
+        "label%3E%20a%20rdfs:resource%20.%20%3Chttp:%2F%2Fevil.com%23command"
+        "%3E%20a%20%3Chttp:%2F%2Fevil.com%23injection",
+    ),
+    # Illegal characters
+    (
+        "illegal:/?#[]@!$&'()*+,;=.",
+        "illegal:%2F%3F%23%5B%5D@%21%24%26%27()%2A%2B%2C%3B%3D.",
+        "Illegal:/?#[]@!$&'()*+,;=.",
+        "Illegal:%2F%3F%23%5B%5D@%21%24%26%27()%2A%2B%2C%3B%3D.",
+        "illegal:/?#[]@!$&'()*+,;=.",
+        "illegal:%2F%3F%23%5B%5D@%21%24%26%27()%2A%2B%2C%3B%3D.",
     ),
 ]

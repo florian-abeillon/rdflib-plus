@@ -2,6 +2,7 @@
 
 from rdflib import OWL, RDF, RDFS
 from rdflib import URIRef as IRI
+
 from rdflib_plus import (
     Alt,
     Bag,
@@ -29,17 +30,17 @@ from tests.parameters.properties import (
 # 1 - Model name (str)
 # 2 - Model IRI type (IRI)
 # 3 - Model's valid properties (set[IRI])
-PARAMETERS_ONTOLOGY: tuple[type, str, IRI, set[IRI], bool, bool] = (
-    Ontology,
-    "Ontology",
-    OWL.Ontology,
-    PARAMETERS_PROPERTIES_ONTOLOGY,
-)
 PARAMETERS_RESOURCE: tuple[type, str, IRI, set[IRI]] = (
     Resource,
     "Resource",
     RDFS.Resource,
     PARAMETERS_PROPERTIES_RESOURCE,
+)
+PARAMETERS_ONTOLOGY: tuple[type, str, IRI, set[IRI]] = (
+    Ontology,
+    "Ontology",
+    OWL.Ontology,
+    PARAMETERS_PROPERTIES_ONTOLOGY,
 )
 
 PARAMETERS_ALT: tuple[type, str, IRI, set[IRI]] = (
@@ -67,7 +68,7 @@ PARAMETERS_SEQ: tuple[type, str, IRI, set[IRI]] = (
     PARAMETERS_PROPERTIES_CONTAINER,
 )
 
-PARAMETERS_ORDERED_OBJECTS: list[tuple[type, str, IRI, set[IRI]]] = [
+PARAMETERS_COLLECTIONS: list[tuple[type, str, IRI, set[IRI]]] = [
     PARAMETERS_ALT,
     PARAMETERS_BAG,
     PARAMETERS_LIST,
@@ -75,7 +76,7 @@ PARAMETERS_ORDERED_OBJECTS: list[tuple[type, str, IRI, set[IRI]]] = [
 ]
 PARAMETERS_BLANK_NODE_OBJECTS: list[tuple[type, str, IRI, set[IRI]]] = [
     PARAMETERS_RESOURCE,
-    *PARAMETERS_ORDERED_OBJECTS,
+    *PARAMETERS_COLLECTIONS,
 ]
 
 
