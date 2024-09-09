@@ -25,3 +25,5 @@ Package to make the creation of RDF-compliant graphs easier.
 - Test **\__init__* of oredered objects with Collection instance
 - Implement the same methods as sets for Bags, if allow_duplicate == False?
 - In test_methods, check graph
+- Do something recursive in List
+- Implement addition of list to Collection (and \__eq__?)

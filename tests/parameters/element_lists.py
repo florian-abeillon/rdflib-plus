@@ -18,9 +18,11 @@ from tests.parameters.elements import (
     PARAMETERS_ELEMENTS_STRING,
 )
 
-# 0 - List of elements and as they should appear in the graph
-#     (list[IRI | Literal | Any])
-PARAMETERS_ELEMENT_LISTS: list[list[IRI | Literal | Any]] = [
+# 0 - List of list of elements and as they should appear in the graph
+#     (list[list[tuple[IRI | Literal | Any, IRI | Literal]]])
+PARAMETERS_ELEMENT_LISTS: list[
+    list[tuple[IRI | Literal | Any, IRI | Literal]]
+] = [
     # Empty list
     [],
     # Boolean only
@@ -62,3 +64,18 @@ PARAMETERS_ELEMENT_LISTS.extend(
         if len(parameter_elements) > 0
     ]
 )
+
+# Turn each parameter from list of pairs to pair of lists
+PARAMETERS_ELEMENT_LISTS: list[
+    tuple[list[IRI | Literal | Any], list[IRI | Literal]]
+] = [
+    (
+        [element for element, element_check in parameters_elements],
+        [element_check for element, element_check in parameters_elements],
+    )
+    # tuple(
+    #     list(parameter_element)
+    #     for parameter_element in tuple(zip(*parameters_elements))
+    # )
+    for parameters_elements in PARAMETERS_ELEMENT_LISTS
+]

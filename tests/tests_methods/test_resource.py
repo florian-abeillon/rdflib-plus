@@ -9,9 +9,9 @@ from rdflib import URIRef as IRI
 
 from rdflib_plus import Resource, SimpleGraph
 from tests.parameters import (
-    PARAMETERS_ELEMENTS_LITERAL_LANGSTRING_WITH_CHECK,
-    PARAMETERS_ELEMENTS_LITERAL_STRING_WITH_CHECK,
-    PARAMETERS_ELEMENTS_STRING_WITH_CHECK,
+    PARAMETERS_ELEMENTS_LITERAL_LANGSTRING,
+    PARAMETERS_ELEMENTS_LITERAL_STRING,
+    PARAMETERS_ELEMENTS_STRING,
     PARAMETERS_IDENTIFIERS,
     PARAMETERS_LANGS,
     PARAMETERS_PROPERTIES_OBJECTS_RESOURCE,
@@ -84,14 +84,14 @@ def test_add(
     args_method = (predicate, object_)
 
     # Specify additional triples to check for
-    add_triples = [(resource.iri, predicate_iri, object_check)]
+    triples_add = [(resource.iri, predicate_iri, object_check)]
 
     # Check if the method created the expected triples
     check_method(
         resource,
         resource.add,
         args=args_method,
-        add_triples=add_triples,
+        triples_add=triples_add,
         with_graph=with_graph,
     )
 
@@ -143,7 +143,7 @@ def test_add_with_lang(
     kwargs_method = {"lang": lang}
 
     # Specify additional triples to check for
-    add_triples = [(resource.iri, predicate_iri, object_check)]
+    triples_add = [(resource.iri, predicate_iri, object_check)]
 
     # Check if the method created the expected triples
     check_method(
@@ -151,7 +151,7 @@ def test_add_with_lang(
         resource.add,
         args=args_method,
         kwargs=kwargs_method,
-        add_triples=add_triples,
+        triples_add=triples_add,
         with_graph=with_graph,
     )
 
@@ -189,14 +189,14 @@ def test_set(
     args_method = (predicate, object_)
 
     # Specify additional triples to check for
-    add_triples = [(resource.iri, predicate_iri, object_check)]
+    triples_add = [(resource.iri, predicate_iri, object_check)]
 
     # Check if the method created the expected triples
     check_method(
         resource,
         resource.set,
         args=args_method,
-        add_triples=add_triples,
+        triples_add=triples_add,
         with_graph=with_graph,
     )
 
@@ -248,7 +248,7 @@ def test_set_with_lang(
     kwargs_method = {"lang": lang}
 
     # Specify additional triples to check for
-    add_triples = [(resource.iri, predicate_iri, object_check)]
+    triples_add = [(resource.iri, predicate_iri, object_check)]
 
     # Check if the method created the expected triples
     check_method(
@@ -256,7 +256,7 @@ def test_set_with_lang(
         resource.set,
         args=args_method,
         kwargs=kwargs_method,
-        add_triples=add_triples,
+        triples_add=triples_add,
         with_graph=with_graph,
     )
 
@@ -318,18 +318,18 @@ def test_set_with_replace(
     kwargs_method = {"replace": True}
 
     # Specify additional triples to check for
-    add_triples = [(resource.iri, predicate_iri, object_2_check)]
-    rem_triples = [(resource.iri, predicate_iri, object_1_check)]
+    triples_add = [(resource.iri, predicate_iri, object_2_check)]
+    triples_rem = [(resource.iri, predicate_iri, object_1_check)]
 
     # Check if the method created the expected triples
     if not with_graph:
-        kwargs = {"rem_triples": rem_triples}
+        kwargs = {"triples_rem": triples_rem}
     check_method(
         resource,
         resource.set,
         args=args_method,
         kwargs=kwargs_method,
-        add_triples=add_triples,
+        triples_add=triples_add,
         with_graph=with_graph,
         **kwargs
     )
@@ -419,7 +419,7 @@ def test_remove(
     kwargs_method = {"o": object_} if with_o else {}
 
     # Specify removed triples to check for
-    rem_triples = [(resource.iri, predicate_iri, object_check)]
+    triples_rem = [(resource.iri, predicate_iri, object_check)]
 
     # Check if the method removed the expected triples
     check_method(
@@ -427,7 +427,7 @@ def test_remove(
         resource.remove,
         args=args_method,
         kwargs=kwargs_method,
-        rem_triples=rem_triples,
+        triples_rem=triples_rem,
         with_graph=with_graph,
         **kwargs
     )
@@ -507,13 +507,13 @@ def test_remove_multiple(
 
     # Specify removed triples to check for, and set potential kwargs
     # to feed the method with
-    rem_triples = [(resource.iri, predicate_iri, object_1_check)]
+    triples_rem = [(resource.iri, predicate_iri, object_1_check)]
     if with_o:
         kwargs_method = {"o": object_1}
     else:
         kwargs_method = {}
         if object_2_check != object_1_check:
-            rem_triples.append((resource.iri, predicate_iri, object_2_check))
+            triples_rem.append((resource.iri, predicate_iri, object_2_check))
 
     # Check if the method removed the expected triples
     check_method(
@@ -521,7 +521,7 @@ def test_remove_multiple(
         resource.remove,
         args=args_method,
         kwargs=kwargs_method,
-        rem_triples=rem_triples,
+        triples_rem=triples_rem,
         with_graph=with_graph,
         **kwargs
     )
@@ -590,7 +590,7 @@ def test_remove_with_lang(
 
     # Specify removed triples to check for
     object_check = Literal(str(object_), lang=lang_1)
-    rem_triples = [(resource.iri, predicate_iri, object_check)]
+    triples_rem = [(resource.iri, predicate_iri, object_check)]
 
     # Check if the method removed the expected triples
     check_method(
@@ -598,7 +598,7 @@ def test_remove_with_lang(
         resource.remove,
         args=args_method,
         kwargs=kwargs_method,
-        rem_triples=rem_triples,
+        triples_rem=triples_rem,
         with_graph=with_graph,
         **kwargs
     )
@@ -658,16 +658,16 @@ def test_replace(
     args_method = (predicate, object_2)
 
     # Specify additional triples to check for
-    add_triples = [(resource.iri, predicate_iri, object_2_check)]
-    rem_triples = [(resource.iri, predicate_iri, object_1_check)]
+    triples_add = [(resource.iri, predicate_iri, object_2_check)]
+    triples_rem = [(resource.iri, predicate_iri, object_1_check)]
 
     # Check if the method created the expected triples
     check_method(
         resource,
         resource.replace,
         args=args_method,
-        add_triples=add_triples,
-        rem_triples=rem_triples,
+        triples_add=triples_add,
+        triples_rem=triples_rem,
         with_graph=with_graph,
         **kwargs
     )
@@ -676,8 +676,7 @@ def test_replace(
 @pytest.mark.parametrize(
     "label, label_check, with_graph",
     cartesian_product(
-        PARAMETERS_ELEMENTS_STRING_WITH_CHECK
-        + PARAMETERS_ELEMENTS_LITERAL_STRING_WITH_CHECK,
+        PARAMETERS_ELEMENTS_STRING + PARAMETERS_ELEMENTS_LITERAL_STRING,
         [True, False],
     ),
 )
@@ -695,14 +694,14 @@ def test_add_alt_label(
     args_method = (label,)
 
     # Specify additional triples to check for
-    add_triples = [(resource.iri, SKOS.altLabel, label_check)]
+    triples_add = [(resource.iri, SKOS.altLabel, label_check)]
 
     # Check if the method created the expected triples
     check_method(
         resource,
         resource.add_alt_label,
         args=args_method,
-        add_triples=add_triples,
+        triples_add=triples_add,
         with_graph=with_graph,
     )
 
@@ -710,9 +709,9 @@ def test_add_alt_label(
 @pytest.mark.parametrize(
     "label, label_check, lang, with_graph",
     cartesian_product(
-        PARAMETERS_ELEMENTS_STRING_WITH_CHECK
-        + PARAMETERS_ELEMENTS_LITERAL_STRING_WITH_CHECK
-        + PARAMETERS_ELEMENTS_LITERAL_LANGSTRING_WITH_CHECK,
+        PARAMETERS_ELEMENTS_STRING
+        + PARAMETERS_ELEMENTS_LITERAL_STRING
+        + PARAMETERS_ELEMENTS_LITERAL_LANGSTRING,
         PARAMETERS_LANGS,
         [True, False],
     ),
@@ -734,7 +733,7 @@ def test_add_alt_label_with_lang(
 
     # Specify additional triples to check for
     label_check = Literal(str(label_check), lang=lang)
-    add_triples = [(resource.iri, SKOS.altLabel, label_check)]
+    triples_add = [(resource.iri, SKOS.altLabel, label_check)]
 
     # Check if the method created the expected triples
     check_method(
@@ -742,7 +741,7 @@ def test_add_alt_label_with_lang(
         resource.add_alt_label,
         args=args_method,
         kwargs=kwargs_method,
-        add_triples=add_triples,
+        triples_add=triples_add,
         with_graph=with_graph,
     )
 
@@ -750,8 +749,7 @@ def test_add_alt_label_with_lang(
 @pytest.mark.parametrize(
     "label, label_check, with_graph",
     cartesian_product(
-        PARAMETERS_ELEMENTS_STRING_WITH_CHECK
-        + PARAMETERS_ELEMENTS_LITERAL_STRING_WITH_CHECK,
+        PARAMETERS_ELEMENTS_STRING + PARAMETERS_ELEMENTS_LITERAL_STRING,
         [True, False],
     ),
 )
@@ -769,14 +767,14 @@ def test_set_pref_label(
     args_method = (label,)
 
     # Specify additional triples to check for
-    add_triples = [(resource.iri, SKOS.prefLabel, label_check)]
+    triples_add = [(resource.iri, SKOS.prefLabel, label_check)]
 
     # Check if the method created the expected triples
     check_method(
         resource,
         resource.set_pref_label,
         args=args_method,
-        add_triples=add_triples,
+        triples_add=triples_add,
         with_graph=with_graph,
     )
 
@@ -784,9 +782,9 @@ def test_set_pref_label(
 @pytest.mark.parametrize(
     "label, label_check, lang, with_graph",
     cartesian_product(
-        PARAMETERS_ELEMENTS_STRING_WITH_CHECK
-        + PARAMETERS_ELEMENTS_LITERAL_STRING_WITH_CHECK
-        + PARAMETERS_ELEMENTS_LITERAL_LANGSTRING_WITH_CHECK,
+        PARAMETERS_ELEMENTS_STRING
+        + PARAMETERS_ELEMENTS_LITERAL_STRING
+        + PARAMETERS_ELEMENTS_LITERAL_LANGSTRING,
         PARAMETERS_LANGS,
         [True, False],
     ),
@@ -808,7 +806,7 @@ def test_set_pref_label_with_lang(
 
     # Specify additional triples to check for
     label_check = Literal(str(label_check), lang=lang)
-    add_triples = [(resource.iri, SKOS.prefLabel, label_check)]
+    triples_add = [(resource.iri, SKOS.prefLabel, label_check)]
 
     # Check if the method created the expected triples
     check_method(
@@ -816,6 +814,6 @@ def test_set_pref_label_with_lang(
         resource.set_pref_label,
         args=args_method,
         kwargs=kwargs_method,
-        add_triples=add_triples,
+        triples_add=triples_add,
         with_graph=with_graph,
     )

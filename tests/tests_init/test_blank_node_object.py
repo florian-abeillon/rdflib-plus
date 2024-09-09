@@ -22,9 +22,7 @@ def test_init_blank_node_object(
     """Test blank node object creation."""
 
     # Test constructor
-    resource = check_init_blank_node_object(
-        model, model_name, model_type, properties
-    )
+    _ = check_init_blank_node_object(model, model_name, model_type, properties)
 
 
 @pytest.mark.parametrize(
@@ -54,15 +52,15 @@ def test_init_blank_node_object_within_namespace(
         namespace = DEFAULT_NAMESPACE
 
     # Set additional triples
-    add_triples = [(DCTERMS.source, source)]
+    triples_add = [(DCTERMS.source, source)]
 
     # Test constructor
-    resource = check_init_blank_node_object(
+    _ = check_init_blank_node_object(
         model,
         model_name,
         model_type,
         properties,
         kwargs=kwargs,
         namespace=namespace,
-        add_triples=add_triples,
+        triples_add=triples_add,
     )

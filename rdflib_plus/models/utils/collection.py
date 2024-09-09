@@ -16,15 +16,16 @@ class Collection(Resource):
     @property
     def elements(self) -> list[IRI]:
         """List of elements contained in Collection."""
-
         return self._elements
 
     @elements.setter
-    def elements(self, new_elements: list[ObjectType]) -> None:
+    def elements(
+        self, new_elements: Union["Collection", list[ObjectType]]
+    ) -> None:
         """Replace all the elements contained in Collection.
 
         Args:
-            new_elements (list[Resource | IRI | Literal | Any]):
+            new_elements (Collection | list[Resource | IRI | Literal | Any]):
                 New set of elements to put in Collection.
         """
 
@@ -32,7 +33,7 @@ class Collection(Resource):
         self.clear()
 
         # Add new elements to elements list
-        self.extend(new_elements)
+        self._extend(new_elements)
 
     def __init__(
         self,
@@ -49,9 +50,7 @@ class Collection(Resource):
             graph (Graph | MultiGraph):
                 Graph to search or create Collection into.
             elements (
-                list[
-                    Resource | IRI | Literal | Any
-                ]
+                list[Resource | IRI | Literal | Any]
                 | Collection
                 | None,
                 optional
@@ -77,17 +76,43 @@ class Collection(Resource):
             check_triples=check_triples,
         )
 
-        # Initialize elements list
-        self._elements: list[ObjectType] = []
+        # Initialize lists of elements, and their formatted form
+        self._elements = []
+        self._elements_formatted = []
 
-        # If some elements are specified
+        # If some elements are specified, set them as a property
         if elements is not None:
-            # If elements is a Collection, extract its elements
-            if isinstance(elements, Collection):
-                elements = elements.elements
-
-            # Add them as attribute, and set them in the graph at the same time
             self.elements = elements
+
+    def __add__(
+        self,
+        sequence: Union[list[ObjectType], set[ObjectType], "Collection"],
+    ) -> "Collection":
+        """Returns the result of the addition of a sequence.
+
+        Args:
+            sequence (
+                list[Resource | IRI | Literal | Any]
+                | set[Resource | IRI | Literal | Any]
+                | Collection
+            ):
+                Sequence of elements that must be added.
+
+        Returns:
+            Collection: New Collection object, containing elements from self
+                        and sequence.
+        """
+
+        # If sequence is a Collection, get its elements
+        if isinstance(sequence, Collection):
+            sequence = sequence.elements
+
+        # Return a new Collection object, with elements from self and sequence
+        return self.__class__(
+            self.graph,
+            elements=self._elements + sequence,
+            check_triples=self._check_triples,
+        )
 
     def __contains__(self, element: ObjectType) -> bool:
         """Check wether element is already in Collection.
@@ -100,7 +125,16 @@ class Collection(Resource):
             bool: Whether element is already in Collection.
         """
 
-        return element in self._elements
+        try:
+            # Try to find element
+            _ = self._index(element)
+
+            # If success, return True
+            return True
+
+        # If fail, return False
+        except ValueError:
+            return False
 
     def __iter__(self) -> Iterable:
         """Returns an iterator on the elements of Collection.
@@ -108,7 +142,6 @@ class Collection(Resource):
         Returns:
             Iterable: Iterator on elements of Collection.
         """
-
         return iter(self._elements)
 
     def __len__(self) -> int:
@@ -117,7 +150,6 @@ class Collection(Resource):
         Returns:
             int: Number of elements in Collection.
         """
-
         return len(self._elements)
 
     def __str__(self) -> str:
@@ -126,6 +158,25 @@ class Collection(Resource):
         type_ = self.__class__.__name__
         elements = [str(element) for element in self._elements]
         return f"{type_}({', '.join(elements)})"
+
+    def _append(self, element: ObjectType) -> None:
+        """Append element to the end of Collection."""
+        raise NotImplementedError
+
+    def _extend(
+        self, new_elements: Union[list[ObjectType], "Collection"]
+    ) -> None:
+        """Extend Collection with new elements.
+
+        Args:
+            new_elements (
+                list[Resource | IRI | Literal | Any]
+                | Collection
+            ):
+                New elements to append to Collection.
+        """
+        for new_element in new_elements:
+            self._append(new_element)
 
     def _format_index(self, index: int) -> int:
         """Turn negative indices into "real" (positive) index.
@@ -139,19 +190,18 @@ class Collection(Resource):
                  the number of elements).
         """
 
+        # If index is not valid given the length of element list
+        if len(self) > 0 and not -len(self) <= index < len(self):
+            # Raise an error
+            raise IndexError(
+                f"Index '{index}' is not valid with object of length "
+                f"{len(self)}."
+            )
+
         # If index is negative
         if index < 0:
             # Turn it into "real" positive index
             index += len(self)
-
-        # If index is not in range
-        if len(self) > 0 and not 0 <= index < len(self):
-            # If index is still negative, set it back to its original value
-            if index < 0:
-                index -= len(self)
-
-            # Raise an error
-            raise ValueError(f"Index '{index}' is not valid.")
 
         return index
 
@@ -164,45 +214,29 @@ class Collection(Resource):
             element (Resource | IRI | Literal | Any):
                 Element to look for in Collection.
             start (int, optional):
-                Index from which to look for element. Defaults to 0.
+                Index from which to look for element (included). Defaults to 0.
             end (int, optional):
-                Index until which to look for element. Defaults to -1.
+                Index until which to look for element (included).
+                Defaults to -1.
 
         Returns:
             int: Index of element in Collection.
         """
 
         # Format element for graph input
-        element = self._format_resource(element, is_object=True)
+        element_formatted = self._format_object(element)
 
         # Format end index
         start = self._format_index(start)
         end = self._format_index(end)
 
-        # Incremeant end, so that end-th element is also considered
-        end += 1
+        # Try to find element between start and end indices
+        index = self._elements_formatted[start : end + 1].index(
+            element_formatted
+        )
 
-        # For every element in elements list
-        for i, element_contained in enumerate(self._elements[start:end]):
-            # Update index
-            i += start
-
-            # Format it for graph input
-            element_contained = self._format_resource(
-                element_contained, is_object=True
-            )
-
-            # If formatted elements are the same
-            if element == element_contained:
-                # Return index of element
-                return i
-
-        # If element is not found in the list, raise an error
-        raise ValueError(f"{element} is not in List")
-
-    def _append(self, element: ObjectType) -> None:
-        """Append element to the end of Collection."""
-        raise NotImplementedError
+        # If success, return index of element
+        return start + index
 
     def _pop(self, index: int) -> ObjectType:
         """Delete and return element of Collection at given index."""
@@ -213,8 +247,7 @@ class Collection(Resource):
         raise NotImplementedError
 
     def copy(self) -> "Collection":
-        """Return a shallow copy of the Collection object."""
-
+        """Return a shallow copy of Collection."""
         return self.__class__(
             self.graph,
             elements=self._elements,
@@ -231,26 +264,8 @@ class Collection(Resource):
         Returns:
             int: Number of times element appears in Collection.
         """
-
-        # Initialize count
-        count = 0
-
-        # Format element for graph input
-        element = self._format_resource(element, is_object=True)
-
-        # For every element in elements list
-        for element_contained in self._elements:
-            # Format it for graph input
-            element_contained = self._format_resource(
-                element_contained, is_object=True
-            )
-
-            # If formatted elements are the same
-            if element == element_contained:
-                # Increment count
-                count += 1
-
-        return count
+        element_formatted = self._format_object(element)
+        return self._elements_formatted.count(element_formatted)
 
     def discard_element(self, element: ObjectType) -> None:
         """Remove the first instance of an element from Collection,
@@ -269,28 +284,6 @@ class Collection(Resource):
         # do nothing
         except ValueError:
             pass
-
-    def extend(
-        self, new_elements: Union["Collection", list[ObjectType]]
-    ) -> None:
-        """Extend Collection with new elements.
-
-        Args:
-            new_elements (
-                Collection |
-                list[Resource | IRI | Literal | Any]
-            ):
-                New elements to add to Collection.
-        """
-
-        # If new_elements is a Collection, get its elements
-        if isinstance(new_elements, Collection):
-            new_elements = new_elements.elements
-
-        # For every new element
-        for new_element in new_elements:
-            # Append it to Collection
-            self._append(new_element)
 
     def remove_element(self, element: ObjectType) -> None:
         """Remove the first instance of an element from Collection,

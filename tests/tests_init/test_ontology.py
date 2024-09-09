@@ -22,27 +22,27 @@ def test_init_with_version(version: str):
     """Test Ontology creation with version number."""
 
     # Arbitrarily select label
-    label = rd.choice(PARAMETERS_LABELS)[0]
+    label, legal_label, *_ = rd.choice(PARAMETERS_LABELS)
 
     # Set kwargs to be used by constructor
     kwargs = {"label": label, "version": version}
 
     # Format identifier and version number
     identifier = Literal(label, datatype=XSD.string)
-    legal_identifier = identifier
+    legal_identifier = Literal(legal_label, datatype=XSD.string)
     version = Literal(version, datatype=XSD.string)
 
     # Set additional triple
-    add_triples = [(OWL.versionInfo, version)]
+    triples_add = [(OWL.versionInfo, version)]
 
     # Test constructor
-    resource = check_init_labeled_object(
+    _ = check_init_labeled_object(
         *PARAMETERS_ONTOLOGY,
         identifier,
         legal_identifier,
         kwargs,
         identifier_property=RDFS.label,
-        add_triples=add_triples,
+        triples_add=triples_add,
     )
 
 
@@ -51,7 +51,7 @@ def test_init_with_comment(comment: str):
     """Test Ontology creation with comment."""
 
     # Arbitrarily select label
-    label = rd.choice(PARAMETERS_LABELS)[0]
+    label, legal_label, *_ = rd.choice(PARAMETERS_LABELS)
 
     # Set kwargs to be used by constructor
     comment = comment[0]
@@ -59,18 +59,18 @@ def test_init_with_comment(comment: str):
 
     # Format identifier and comment
     identifier = Literal(label, datatype=XSD.string)
-    legal_identifier = identifier
+    legal_identifier = Literal(legal_label, datatype=XSD.string)
     comment = Literal(comment, datatype=XSD.string)
 
     # Set additional triple
-    add_triples = [(RDFS.comment, comment)]
+    triples_add = [(RDFS.comment, comment)]
 
     # Test constructor
-    resource = check_init_labeled_object(
+    _ = check_init_labeled_object(
         *PARAMETERS_ONTOLOGY,
         identifier,
         legal_identifier,
         kwargs,
         identifier_property=RDFS.label,
-        add_triples=add_triples,
+        triples_add=triples_add,
     )

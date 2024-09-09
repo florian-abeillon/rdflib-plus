@@ -52,51 +52,35 @@ class Container(Collection):
                 Element to append to Container.
         """
 
-        # Append element to the elements list
+        # Append element and its formatted form to the elements lists
         self._elements.append(element)
+        self._elements_formatted.append(self._format_object(element))
 
         # Set element's value in graph, with appropriate index
-        index = len(self) - 1
-        predicate = self._get_predicate(index)
+        predicate = self._get_predicate(len(self) - 1)
         self.set(predicate, element)
 
-    def _insert(self, index: int, element: ObjectType) -> None:
+    def _insert(self, index: int, new_element: ObjectType) -> None:
         """Insert element at index-th position of Container.
 
         Args:
             index (int):
                 Index to insert element at.
-            element (ObjectType):
+            new_element (ObjectType):
                 Element to insert into Seq.
         """
 
-        # Format index, so that it is positive
-        index = self._format_index(index)
+        # Insert new element and its formatted form into elements lists
+        self._elements.insert(index, new_element)
+        self._elements_formatted.insert(
+            index, self._format_object(new_element)
+        )
 
-        # Insert element into elements list
-        self._elements.insert(index, element)
-
-        # If inserting the element at the end
-        if index == len(self) - 1:
-            # Add value into graph
-            predicate = self._get_predicate(index)
-            self.set(predicate, element)
-
-        # Otherwise
-        else:
-            # For every element, from index-th
-            for i in range(index, len(self)):
-                # If i is not the last element
-                if i < len(self) - 1:
-                    # Remove value in graph
-                    predicate = self._get_predicate(index)
-                    self.remove(predicate)
-
-                # Get i-th element
-                element = self._elements[i]
-
-                # Update value in graph
-                self.set(predicate, element)
+        # For every element from index
+        for i, element in enumerate(self._elements[index:]):
+            # Update value in graph
+            predicate = self._get_predicate(index + i)
+            self.set(predicate, element, replace=True)
 
     def _pop(self, index: int) -> ObjectType:
         """Delete and return element of Container at given index.
@@ -114,24 +98,18 @@ class Container(Collection):
         index = self._format_index(index)
 
         # For every element from index
-        for i in range(index, len(self)):
-            # Remove value in graph
-            predicate = self._get_predicate(i)
-            self.remove(predicate)
+        for i, element in enumerate(self._elements[index + 1 :]):
+            # Update value in graph
+            predicate = self._get_predicate(index + i)
+            self.replace(predicate, element)
 
-            # If there is another element left in the Container afterwards
-            if i < len(self) - 1:
-                # Get next formatted element
-                next_element = self._elements[i + 1]
+        # Remove last link to element in graph
+        predicate = self._get_predicate(len(self) - 1)
+        self.remove(predicate)
 
-                # Update value in graph
-                self.set(predicate, next_element)
-
-        # Get the removed element
-        element = self._elements[index]
-
-        # Remove element from elements lists
-        del self._elements[index]
+        # Pop the element to be removed
+        element = self._elements.pop(index)
+        del self._elements_formatted[index]
 
         return element
 
@@ -146,3 +124,4 @@ class Container(Collection):
 
         # Empty element lists
         self._elements.clear()
+        self._elements_formatted.clear()

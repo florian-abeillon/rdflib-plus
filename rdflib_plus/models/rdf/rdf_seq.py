@@ -4,7 +4,7 @@ from typing import Callable, Optional
 
 from rdflib import RDF
 
-from rdflib_plus.models.rdf.rdfs_container import Container
+from rdflib_plus.models.rdf.rdfs_container import Collection, Container
 from rdflib_plus.models.rdf.rdfs_resource import ObjectType, ResourceOrIri
 
 
@@ -21,8 +21,6 @@ class Seq(Container):
             index (int):
                 Index of element to delete in Seq. Can be negative.
         """
-
-        # Pop element at given index
         _ = self._pop(index)
 
     def __getitem__(self, index: int) -> ObjectType:
@@ -35,7 +33,6 @@ class Seq(Container):
         Returns:
             Resource | IRI | Literal | Any: Element at given index.
         """
-
         return self._elements[index]
 
     def __reversed__(self) -> "Seq":
@@ -44,7 +41,6 @@ class Seq(Container):
         Returns:
             Seq: Reversed Seq.
         """
-
         self.reverse()
         return self
 
@@ -58,15 +54,13 @@ class Seq(Container):
                 New value of element.
         """
 
-        # Update value in elements list
+        # Update value and its formatted form in elements lists
         self._elements[index] = element
-
-        # Remove old value in graph
-        predicate = self._get_predicate(index)
-        self.remove(predicate)
+        self._elements_formatted[index] = self._format_object(element)
 
         # Update value in graph
-        self.set(predicate, element)
+        predicate = self._get_predicate(index)
+        self.replace(predicate, element)
 
     def append(self, element: ObjectType) -> None:
         """Append element to the end of Seq.
@@ -75,8 +69,19 @@ class Seq(Container):
             element (Resource | IRI | Literal | Any):
                 Element to append to Seq.
         """
-
         self._append(element)
+
+    def extend(self, new_elements: list[ObjectType] | Collection) -> None:
+        """Extend Seq with new elements.
+
+        Args:
+            new_elements (
+                list[Resource | IRI | Literal | Any]
+                | Collection
+            ):
+                New elements to append to Seq.
+        """
+        super()._extend(new_elements)
 
     def index(self, element: ObjectType, start: int = 0, end: int = -1) -> int:
         """Get index of element in Seq.
@@ -92,7 +97,6 @@ class Seq(Container):
         Returns:
             int: Index of element in Seq.
         """
-
         return self._index(element, start=start, end=end)
 
     def insert(self, index: int, element: ObjectType) -> None:
@@ -104,7 +108,6 @@ class Seq(Container):
             element (ObjectType):
                 Element to insert into Seq.
         """
-
         super()._insert(index, element)
 
     def pop(self, index: int = -1) -> ObjectType:
@@ -118,13 +121,11 @@ class Seq(Container):
         Returns:
             Resource | IRI | Literal | Any: Removed element.
         """
-
         return super()._pop(index)
 
     def reverse(self) -> None:
         """Reverse order of elements of Seq."""
-
-        self.elements = reversed(self._elements)
+        self.elements = reversed(self.elements)
 
     def sort(
         self, key: Optional[Callable] = None, reverse: bool = False
@@ -138,5 +139,4 @@ class Seq(Container):
                 Whether to sort in reverse (ie. descending) order.
                 Defaults to False.
         """
-
         self.elements = sorted(self._elements, key=key, reverse=reverse)

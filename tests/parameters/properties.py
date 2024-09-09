@@ -3,14 +3,14 @@
 from rdflib import DCTERMS, OWL, RDF, RDFS, SKOS
 
 from tests.parameters import (
-    PARAMETERS_ELEMENTS_DOUBLE_WITH_CHECK,
-    PARAMETERS_ELEMENTS_INTEGER_WITH_CHECK,
-    PARAMETERS_ELEMENTS_IRI_WITH_CHECK,
-    PARAMETERS_ELEMENTS_LITERAL_DOUBLE_WITH_CHECK,
-    PARAMETERS_ELEMENTS_LITERAL_INTEGER_WITH_CHECK,
-    PARAMETERS_ELEMENTS_LITERAL_LANGSTRING_WITH_CHECK,
-    PARAMETERS_ELEMENTS_LITERAL_STRING_WITH_CHECK,
-    PARAMETERS_ELEMENTS_STRING_WITH_CHECK,
+    PARAMETERS_ELEMENTS_DOUBLE,
+    PARAMETERS_ELEMENTS_INTEGER,
+    PARAMETERS_ELEMENTS_IRI,
+    PARAMETERS_ELEMENTS_LITERAL_DOUBLE,
+    PARAMETERS_ELEMENTS_LITERAL_INTEGER,
+    PARAMETERS_ELEMENTS_LITERAL_LANGSTRING,
+    PARAMETERS_ELEMENTS_LITERAL_STRING,
+    PARAMETERS_ELEMENTS_STRING,
     PARAMETERS_LABELS,
 )
 from tests.utils import build_iri, cartesian_product
@@ -51,24 +51,18 @@ parameters_elements_iri_class_with_check = [
 
 PARAMETERS_PROPERTIES_TO_OBJECTS_RESOURCE = {
     DCTERMS.identifier: [
-        *cartesian_product(PARAMETERS_ELEMENTS_STRING_WITH_CHECK, [False]),
-        *cartesian_product(
-            PARAMETERS_ELEMENTS_LITERAL_STRING_WITH_CHECK, [False]
-        ),
-        *cartesian_product(
-            PARAMETERS_ELEMENTS_LITERAL_LANGSTRING_WITH_CHECK, [False]
-        ),
-        *cartesian_product(PARAMETERS_ELEMENTS_INTEGER_WITH_CHECK, [False]),
-        *cartesian_product(
-            PARAMETERS_ELEMENTS_LITERAL_INTEGER_WITH_CHECK, [False]
-        ),
-        # *cartesian_product(PARAMETERS_ELEMENTS_DOUBLE_WITH_CHECK, [False]),
+        *cartesian_product(PARAMETERS_ELEMENTS_STRING, [False]),
+        *cartesian_product(PARAMETERS_ELEMENTS_LITERAL_STRING, [False]),
+        *cartesian_product(PARAMETERS_ELEMENTS_LITERAL_LANGSTRING, [False]),
+        *cartesian_product(PARAMETERS_ELEMENTS_INTEGER, [False]),
+        *cartesian_product(PARAMETERS_ELEMENTS_LITERAL_INTEGER, [False]),
+        # *cartesian_product(PARAMETERS_ELEMENTS_DOUBLE, [False]),
         # *cartesian_product(
-        #     PARAMETERS_ELEMENTS_LITERAL_DOUBLE_WITH_CHECK, [False]
+        #     PARAMETERS_ELEMENTS_LITERAL_DOUBLE, [False]
         # ),
     ],
     DCTERMS.source: [
-        *cartesian_product(PARAMETERS_ELEMENTS_IRI_WITH_CHECK, [False]),
+        *cartesian_product(PARAMETERS_ELEMENTS_IRI, [False]),
         *cartesian_product(
             parameters_elements_iri_resource_with_check, [True]
         ),
@@ -81,23 +75,15 @@ PARAMETERS_PROPERTIES_TO_OBJECTS_RESOURCE = {
         *cartesian_product(parameters_elements_iri_class_with_check, [True]),
     ],
     SKOS.prefLabel: [
-        *cartesian_product(PARAMETERS_ELEMENTS_STRING_WITH_CHECK, [False]),
-        *cartesian_product(
-            PARAMETERS_ELEMENTS_LITERAL_STRING_WITH_CHECK, [False]
-        ),
-        *cartesian_product(
-            PARAMETERS_ELEMENTS_LITERAL_LANGSTRING_WITH_CHECK, [False]
-        ),
+        *cartesian_product(PARAMETERS_ELEMENTS_STRING, [False]),
+        *cartesian_product(PARAMETERS_ELEMENTS_LITERAL_STRING, [False]),
+        *cartesian_product(PARAMETERS_ELEMENTS_LITERAL_LANGSTRING, [False]),
         # TODO: Add integers etc. with string Literal?
     ],
     SKOS.altLabel: [
-        *cartesian_product(PARAMETERS_ELEMENTS_STRING_WITH_CHECK, [False]),
-        *cartesian_product(
-            PARAMETERS_ELEMENTS_LITERAL_STRING_WITH_CHECK, [False]
-        ),
-        *cartesian_product(
-            PARAMETERS_ELEMENTS_LITERAL_LANGSTRING_WITH_CHECK, [False]
-        ),
+        *cartesian_product(PARAMETERS_ELEMENTS_STRING, [False]),
+        *cartesian_product(PARAMETERS_ELEMENTS_LITERAL_STRING, [False]),
+        *cartesian_product(PARAMETERS_ELEMENTS_LITERAL_LANGSTRING, [False]),
     ],
 }
 

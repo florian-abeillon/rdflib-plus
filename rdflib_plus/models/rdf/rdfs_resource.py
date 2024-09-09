@@ -82,13 +82,30 @@ class Resource(RdflibResource):
         return {**constraints, **cls._constraints}
 
     @property
+    def id(self) -> IdentifierType:
+        """Return Resource's identifier.
+
+        Returns:
+            str | int: Resource '_id' attribute.
+        """
+        return self._id
+
+    @property
+    def identifier_property(self) -> ResourceOrIri:
+        """Return Resource's identifier property.
+
+        Returns:
+            ResourceOrIri: Resource '_identifier_property' attribute.
+        """
+        return self._identifier_property
+
+    @property
     def iri(self) -> IRI:
         """Return Resource's IRI.
 
         Returns:
             IRI: Resource '_identifier' attribute.
         """
-
         return self._identifier
 
     @property
@@ -98,38 +115,7 @@ class Resource(RdflibResource):
         Returns:
             list[str]: Resource '_path' attribute.
         """
-
         return self._path
-
-    @property
-    def identifier_property(self) -> ResourceOrIri:
-        """Return Resource's identifier property.
-
-        Returns:
-            ResourceOrIri: Resource '_identifier_property' attribute.
-        """
-
-        return self._identifier_property
-
-    @property
-    def id(self) -> IdentifierType:
-        """Return Resource's identifier.
-
-        Returns:
-            str | int: Resource '_id' attribute.
-        """
-
-        return self._id
-
-    @property
-    def type(self) -> ResourceOrIri:
-        """Return Resource's type.
-
-        Returns:
-            ResourceOrIri: Resource's '_type' attribute.
-        """
-
-        return self._type
 
     @property
     def properties(self) -> set[IRI]:
@@ -138,18 +124,16 @@ class Resource(RdflibResource):
         Returns:
             set[IRI]: Resource's allowed properties.
         """
-
         return set(self._constraints.keys())
 
-    def __repr__(self) -> IRI:
-        """Unambiguous representation of Resource"""
+    @property
+    def type(self) -> ResourceOrIri:
+        """Return Resource's type.
 
-        return self.iri
-
-    def __str__(self) -> str:
-        """Human-readable string representation of Resource"""
-
-        return stringify_iri(self._identifier)
+        Returns:
+            ResourceOrIri: Resource's '_type' attribute.
+        """
+        return self._type
 
     def __init__(
         self,
@@ -283,6 +267,16 @@ class Resource(RdflibResource):
             if (iri, DCTERMS.source, IRI(namespace)) not in full_graph:
                 # Make the link
                 self.add(DCTERMS.source, IRI(namespace), graph=full_graph)
+
+    def __repr__(self) -> IRI:
+        """Unambiguous representation of Resource"""
+        return self._identifier
+
+    # TODO: Change tests
+    def __str__(self) -> str:
+        """Human-readable string representation of Resource"""
+        type_ = self.__class__.__name__
+        return f"{type_}(iri={stringify_iri(self._identifier)})"
 
     def _format_lang(self, lang: Optional[str]) -> Optional[str]:
         """Set Resource's '_lang' attribute."""
@@ -551,6 +545,65 @@ class Resource(RdflibResource):
 
         return resource
 
+    def _format_object(
+        self,
+        o: Optional[ObjectType],
+        lang: LangType = DEFAULT_LANGUAGE,
+        check_triple: bool = False,
+    ) -> IRI | Literal:
+        """Prepare object, to be added to triplestore.
+
+        Args:
+            o (Resource | IRI | Literal | Any | None):
+                Object to be added.
+            lang (str | None, optional):
+                Language of object. Defaults to DEFAULT_LANGUAGE.
+            check_triple (bool, optional):
+                Whether to check the added triple. Defaults to False.
+
+        Returns:
+            IRI | Literal: Prepared object.
+        """
+
+        # Format o for graph input
+        o = self._format_resource(o, is_object=True, check_triple=check_triple)
+
+        # If an object is specified
+        if o is not None:
+
+            # If o is neither a plain IRI nor a Literal
+            if not isinstance(o, (IRI, Literal)):
+                # If o is an empty string, raise warning
+                if o == "":
+                    warnings.warn(
+                        f"{self}: Empty string is used as object in triple "
+                        f"with predicate '{stringify_iri(p)}'."
+                    )
+
+                # If a language is specified
+                if lang is not None:
+                    # Force o to be a string, and specify language
+                    o = Literal(str(o), lang=lang)
+
+                # Otherwise, if o is a string
+                elif isinstance(o, str):
+                    # If Resource was set with a language, specify it
+                    if self._lang is not None:
+                        o = Literal(o, lang=self._lang)
+                    # Otherwise, specify datatype
+                    else:
+                        o = Literal(o, datatype=XSD.string)
+
+                else:
+                    o = Literal(o)
+
+            # If o is a Literal, and a language is specified
+            elif lang is not None and isinstance(o, Literal):
+                # Format o into a Literal with appropriate language
+                o = Literal(str(o), lang=lang)
+
+        return o
+
     def _format_p_o(
         self,
         p: Optional[ResourceOrIri],
@@ -636,40 +689,7 @@ class Resource(RdflibResource):
             #     )
 
         # Format o for graph input
-        o = self._format_resource(o, is_object=True, check_triple=check_triple)
-
-        # If an object is specified
-        if o is not None:
-            # If o is neither a plain IRI nor a Literal
-            if not isinstance(o, (IRI, Literal)):
-                # If o is an empty string, raise warning
-                if o == "":
-                    warnings.warn(
-                        f"{self}: Empty string is used as object in triple "
-                        f"with predicate '{stringify_iri(p)}'."
-                    )
-
-                # If a language is specified
-                if lang is not None:
-                    # Force o to be a string, and specify language
-                    o = Literal(str(o), lang=lang)
-
-                # Otherwise, if o is a string
-                elif isinstance(o, str):
-                    # If Resource was set with a language, specify it
-                    if self._lang is not None:
-                        o = Literal(o, lang=self._lang)
-                    # Otherwise, specify datatype
-                    else:
-                        o = Literal(o, datatype=XSD.string)
-
-                else:
-                    o = Literal(o)
-
-            # If o is a Literal, and a language is specified
-            elif lang is not None and isinstance(o, Literal):
-                # Format o into a Literal with appropriate language
-                o = Literal(str(o), lang=lang)
+        o = self._format_object(o, lang=lang, check_triple=check_triple)
 
         # If o is a Literal, and predicate has a "datatype" constraint
         if (
@@ -923,11 +943,6 @@ class Resource(RdflibResource):
             check_triple (bool | None, optional):
                 Whether to check the added triple. Defaults to None.
         """
-
-        # Remove old value of attribute
-        self.remove(p, graph=graph)
-
-        # Set its new value
         self.set(
             p,
             o,

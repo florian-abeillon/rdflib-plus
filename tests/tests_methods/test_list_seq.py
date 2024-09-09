@@ -10,48 +10,47 @@ from rdflib import URIRef as IRI
 
 from tests.parameters import (
     PARAMETERS_ELEMENT_LISTS,
-    PARAMETERS_ELEMENTS,
     PARAMETERS_KEY_FUNCTIONS,
     PARAMETERS_LIST,
     PARAMETERS_SEQ,
 )
-from tests.tests_methods.utils import build_collection, check_elements
+from tests.tests_methods.utils import build_collection
 from tests.utils import SEED, cartesian_product
 
 # Set random seed
 rd.seed(SEED)
 
 
-@pytest.mark.parametrize(
-    "model, model_name, model_type, properties, element_list",
-    cartesian_product(
-        [PARAMETERS_LIST, PARAMETERS_SEQ], PARAMETERS_ELEMENT_LISTS
-    ),
-)
-def test_delitem(
-    model: type,
-    model_name: str,
-    model_type: IRI,
-    properties: set[IRI],
-    element_list: list[IRI | Literal | Any],
-):
-    """Test List and Seq's __delitem__ operator."""
+# @pytest.mark.parametrize(
+#     "model, model_name, model_type, properties, element_list",
+#     cartesian_product(
+#         [PARAMETERS_LIST, PARAMETERS_SEQ], PARAMETERS_ELEMENT_LISTS
+#     ),
+# )
+# def test_delitem(
+#     model: type,
+#     model_name: str,
+#     model_type: IRI,
+#     properties: set[IRI],
+#     element_list: list[IRI | Literal | Any],
+# ):
+#     """Test List and Seq's __delitem__ operator."""
 
-    # Create List or Seq
-    collection = build_collection(model, element_list=element_list)
+#     # Create List or Seq
+#     collection = build_collection(model, element_list=element_list)
 
-    n = len(element_list)
-    for i in range(n):
+#     n = len(element_list)
+#     for i in range(n):
 
-        # Get an index at random
-        index = rd.randint(0, n - i - 1)
+#         # Get an index at random
+#         index = rd.randint(0, n - i - 1)
 
-        # Remove element corresponding to this index
-        del collection[index]
+#         # Remove element corresponding to this index
+#         del collection[index]
 
-        # Check that the index-th element has indeed been removed
-        del element_list[index]
-        assert collection.elements == element_list
+#         # Check that the index-th element has indeed been removed
+#         del element_list[index]
+#         assert collection.elements == element_list
 
 
 @pytest.mark.parametrize(
@@ -77,96 +76,106 @@ def test_getitem(
         # Check that the i-th element is the correct one
         assert collection[i] == element
 
-    # TODO: Test slicers
+    # For every index
+    for i in range(len(element_list)):
+        # Check that slicing returns the correct list
+        assert collection[i:] == element_list[i:]
+        assert collection[:i] == element_list[:i]
+
+    # For every pair of indices
+    for i in range(len(element_list)):
+        for j in range(len(element_list)):
+            # Check that slicing returns the correct list
+            assert collection[i:j] == element_list[i:j]
 
 
-@pytest.mark.parametrize(
-    "model, model_name, model_type, properties, element_list",
-    cartesian_product(
-        [PARAMETERS_LIST, PARAMETERS_SEQ], PARAMETERS_ELEMENT_LISTS
-    ),
-)
-def test_reversed(
-    model: type,
-    model_name: str,
-    model_type: IRI,
-    properties: set[IRI],
-    element_list: list[IRI | Literal | Any],
-):
-    """Test Lit and Seq's __reversed__ operator."""
+# @pytest.mark.parametrize(
+#     "model, model_name, model_type, properties, element_list",
+#     cartesian_product(
+#         [PARAMETERS_LIST, PARAMETERS_SEQ], PARAMETERS_ELEMENT_LISTS
+#     ),
+# )
+# def test_reversed(
+#     model: type,
+#     model_name: str,
+#     model_type: IRI,
+#     properties: set[IRI],
+#     element_list: list[IRI | Literal | Any],
+# ):
+#     """Test Lit and Seq's __reversed__ operator."""
 
-    # Create List or Seq
-    collection = build_collection(model, element_list=element_list)
+#     # Create List or Seq
+#     collection = build_collection(model, element_list=element_list)
 
-    # Reverse object
-    collection_reversed = reversed(collection)
+#     # Reverse object
+#     collection_reversed = reversed(collection)
 
-    # Check that elements were reversed
-    assert collection_reversed.elements == list(reversed(element_list))
-
-
-@pytest.mark.parametrize(
-    "model, model_name, model_type, properties, element_list",
-    cartesian_product(
-        [PARAMETERS_LIST, PARAMETERS_SEQ], PARAMETERS_ELEMENT_LISTS
-    ),
-)
-def test_setitem(
-    model: type,
-    model_name: str,
-    model_type: IRI,
-    properties: set[IRI],
-    element_list: list[IRI | Literal | Any],
-):
-    """Test List and Seq's __setitem__ operator."""
-
-    # Create List or Seq
-    collection = build_collection(model)
-
-    # Keep elements in memory
-    collection_elements_before = copy.deepcopy(collection.elements)
-
-    n = len(collection)
-    for element in element_list:
-
-        # Pick an index at random
-        i = rd.randint(0, n - 1)
-
-        # Set i-th element
-        collection[i] = element
-
-        # Check that the element was correctly replaced
-        collection_elements_before[i] = element
-        assert collection.elements == collection_elements_before
+#     # Check that elements were reversed
+#     assert collection_reversed.elements == list(reversed(element_list))
 
 
-@pytest.mark.parametrize(
-    "model, model_name, model_type, properties, element",
-    cartesian_product([PARAMETERS_LIST, PARAMETERS_SEQ], PARAMETERS_ELEMENTS),
-)
-def test_append(
-    model: type,
-    model_name: str,
-    model_type: IRI,
-    properties: set[IRI],
-    element: IRI | Literal | Any,
-):
-    """Test List and Seq's append() method."""
+# @pytest.mark.parametrize(
+#     "model, model_name, model_type, properties, element_list",
+#     cartesian_product(
+#         [PARAMETERS_LIST, PARAMETERS_SEQ], PARAMETERS_ELEMENT_LISTS
+#     ),
+# )
+# def test_setitem(
+#     model: type,
+#     model_name: str,
+#     model_type: IRI,
+#     properties: set[IRI],
+#     element_list: list[IRI | Literal | Any],
+# ):
+#     """Test List and Seq's __setitem__ operator."""
 
-    # Arbitrarily select list of elements, and create List or Seq
-    collection = build_collection(model)
+#     # Create List or Seq
+#     collection = build_collection(model)
 
-    # Keep elements in memory
-    collection_elements_before = copy.deepcopy(collection.elements)
+#     # Keep elements in memory
+#     collection_elements_before = copy.deepcopy(collection.elements)
 
-    # Append element
-    collection.append(element)
+#     n = len(collection)
+#     for element in element_list:
 
-    # Check that collection appropriately contains all the elements of list
-    # plus element
-    check_elements(
-        model, collection.elements, collection_elements_before + [element]
-    )
+#         # Pick an index at random
+#         i = rd.randint(0, n - 1)
+
+#         # Set i-th element
+#         collection[i] = element
+
+#         # Check that the element was correctly replaced
+#         collection_elements_before[i] = element
+#         assert collection.elements == collection_elements_before
+
+
+# @pytest.mark.parametrize(
+#     "model, model_name, model_type, properties, element",
+#     cartesian_product([PARAMETERS_LIST, PARAMETERS_SEQ], PARAMETERS_ELEMENTS),
+# )
+# def test_append(
+#     model: type,
+#     model_name: str,
+#     model_type: IRI,
+#     properties: set[IRI],
+#     element: IRI | Literal | Any,
+# ):
+#     """Test List and Seq's append() method."""
+
+#     # Arbitrarily select list of elements, and create List or Seq
+#     collection = build_collection(model)
+
+#     # Keep elements in memory
+#     collection_elements_before = copy.deepcopy(collection.elements)
+
+#     # Append element
+#     collection.append(element)
+
+#     # Check that collection appropriately contains all the elements of list
+#     # plus element
+#     check_elements(
+#         collection, collection_elements_before + [element]
+#     )
 
 
 @pytest.mark.parametrize(

@@ -153,7 +153,7 @@ def test_init_within_namespace(
         namespace = DEFAULT_NAMESPACE
 
     # Set additional triple
-    add_triples = [(DCTERMS.source, source)]
+    triples_add = [(DCTERMS.source, source)]
 
     # Test constructor
     resource = check_init_labeled_object(
@@ -167,5 +167,5 @@ def test_init_within_namespace(
         namespace=namespace,
         sep=sep,
         label=label,
-        add_triples=add_triples,
+        triples_add=triples_add,
     )

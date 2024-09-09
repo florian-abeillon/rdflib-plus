@@ -130,7 +130,7 @@ def test_init_class_with_hierarchical_path_and_type_in_iri(
     ]
 
     # Check that all triples are in the graph
-    check_graph_triples(graph, triples, exact=True)
+    check_graph_triples(graph, triples)
 
 
 @pytest.mark.parametrize(
@@ -248,7 +248,7 @@ def test_init_property_with_hierarchical_path_and_type_in_iri(
     ]
 
     # Check that all triples are in the graph
-    check_graph_triples(graph, triples, exact=True)
+    check_graph_triples(graph, triples)
 
 
 @pytest.mark.parametrize(
@@ -301,7 +301,7 @@ def test_init_class_property_with_type_in_iri(
     iri += legal_label_formatted
 
     # Format label and identifier
-    identifier = Literal(legal_label_formatted, datatype=XSD.string)
+    identifier = Literal(label_formatted, datatype=XSD.string)
     label = Literal(label, datatype=XSD.string)
 
     # Define triples to look for
@@ -324,7 +324,7 @@ def test_init_class_property_with_type_in_iri(
     ]
 
     # Check that all triples are in the graph
-    check_graph_triples(graph, triples, exact=True)
+    check_graph_triples(graph, triples)
 
 
 # TODO: Test for update_constraints

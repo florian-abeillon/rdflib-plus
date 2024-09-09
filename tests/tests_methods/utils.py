@@ -18,10 +18,13 @@ from rdflib_plus import (
     SimpleGraph,
 )
 from tests.parameters import PARAMETERS_ELEMENT_LISTS, PARAMETERS_IDENTIFIERS
-from tests.utils import check_graph_triples
+from tests.utils import check_rem_add, parse_element_list_with_check
 
 
-def build_alt(element_list: Optional[list[IRI | Literal | Any]] = None) -> Alt:
+def build_alt(
+    element_list: Optional[list[IRI | Literal | Any]] = None,
+    graph: Optional[SimpleGraph | MultiGraph] = None,
+) -> Alt:
     """Build Alt from element list."""
 
     # If no element list is specified
@@ -29,8 +32,9 @@ def build_alt(element_list: Optional[list[IRI | Literal | Any]] = None) -> Alt:
         # Randomly select list of elements
         element_list = rd.choice(PARAMETERS_ELEMENT_LISTS)
 
-    # Initialize graph
-    graph = SimpleGraph()
+    # If no graph is specified, initialize it
+    if graph is None:
+        graph = SimpleGraph()
 
     # Create Alt
     if element_list:
@@ -43,7 +47,9 @@ def build_alt(element_list: Optional[list[IRI | Literal | Any]] = None) -> Alt:
 
 
 def build_collection(
-    model: type, element_list: Optional[list[IRI | Literal | Any]] = None
+    model: type,
+    element_list: Optional[list[IRI | Literal | Any]] = None,
+    graph: Optional[SimpleGraph | MultiGraph] = None,
 ) -> Alt | Bag | List | Seq:
     """Build Collection object from (random) element list."""
 
@@ -54,11 +60,16 @@ def build_collection(
 
     # If model is Alt, create an Alt
     if model == Alt:
-        return build_alt(element_list=element_list)
+        return build_alt(element_list=element_list, graph=graph)
 
-    # Initialize graph, and create object
-    graph = SimpleGraph()
-    return model(graph, elements=element_list)
+    # If no graph is specified, initialize it
+    if graph is None:
+        graph = SimpleGraph()
+
+    # Create object
+    collection = model(graph, elements=element_list)
+
+    return collection
 
 
 def build_object(
@@ -114,9 +125,9 @@ def build_resource(model: type = Resource) -> Resource:
     return resource
 
 
+# TODO: Makes sense to still have this function?
 def check_elements(
-    model: type,
-    collection_elements: list[Any],
+    collection: Alt | Bag | List | Seq,
     element_list: list[Any],
     element_set: Optional[list[Any]] = None,
 ):
@@ -126,22 +137,30 @@ def check_elements(
     """
 
     # If Collection object is an Alt or a Bag
-    if model in [Alt, Bag]:
+    if isinstance(collection, (Alt, Bag)):
         # It it is an Alt, remove duplicates from element list
-        if model == Alt:
-            element_list = (
-                set(element_list) if element_set is None else element_set
-            )
+        if isinstance(collection, Alt):
+            if element_set is None:
+                element_set = []
+                for element in element_list:
+                    if not any(
+                        element == el
+                        and isinstance(element, type(el))
+                        and isinstance(el, type(element))
+                        for el in element_set
+                    ):
+                        element_set.append(element)
+            element_list = element_set
 
         # Check that there are as many elements in Collection object as in list
-        assert len(collection_elements) == len(element_list)
+        assert len(collection.elements) == len(element_list)
         # Check that all elements in list also appear in Collection
-        assert all(element in collection_elements for element in element_list)
+        assert all(element in collection.elements for element in element_list)
 
     # Otherwise, if object is a List or a Seq
     else:
         # Check that the list of elements from Collection is the same as list
-        assert list(collection_elements) == list(element_list)
+        assert list(collection.elements) == list(element_list)
 
 
 def check_method(
@@ -149,8 +168,8 @@ def check_method(
     method: Callable,
     args: tuple = (),
     kwargs: Optional[dict] = None,
-    add_triples: Optional[list[tuple]] = None,
-    rem_triples: Optional[list[tuple]] = None,
+    triples_add: Optional[list[tuple]] = None,
+    triples_rem: Optional[list[tuple]] = None,
     with_graph: bool = False,
     graph: Optional[SimpleGraph | MultiGraph] = None,
 ) -> None:
@@ -165,7 +184,6 @@ def check_method(
 
     # If testing with the "graph" kwarg
     if with_graph:
-
         # If no graph is specified
         if graph is None:
             # Create a new, separate graph
@@ -187,27 +205,18 @@ def check_method(
 
     # If testing with the "graph" kwarg
     if with_graph:
-
         # Check that Resource's graph did not change
         assert set(resource.graph) == set(resource_graph_before)
 
-    # If additional triples are specified
-    if add_triples is not None:
+    # If no removed triples are specified
+    if triples_rem is None:
+        triples_rem = []
+    # If no additional triples are specified
+    if triples_add is None:
+        triples_add = []
 
-        # Get the additional triples due to the call to the method
-        graph_add = graph - graph_before
-
-        # Check that all triples were added to the graph
-        check_graph_triples(graph_add, add_triples, exact=True)
-
-    # If removed triples are specified
-    if rem_triples is not None:
-
-        # Get the triples removed by the call to the method
-        graph_rem = graph_before - graph
-
-        # Check that all triples were removed from the graph
-        check_graph_triples(graph_rem, rem_triples, exact=True)
+    # Check the correctness of the removed and additional triples
+    check_rem_add(graph_before, graph, triples_rem, triples_add)
 
 
 def check_str(
@@ -243,52 +252,51 @@ def get_another_parameter(
     raise ValueError("Could not get another parameter from the list")
 
 
-def parse_element_list_with_check(
-    element_list_with_check: list[tuple[IRI | Literal | Any, IRI | Literal]]
-) -> tuple[list[IRI | Literal | Any, IRI | Literal]]:
-    """Parse lists of elements with check."""
+def get_default_alternatives(
+    element_list_with_check: list[tuple[IRI | Literal | Any, IRI | Literal]],
+) -> tuple[Optional[IRI | Literal | Any], list[IRI | Literal | Any]]:
+    """Get default and alternatives from list of elements."""
 
+    # If list is empty
     if not element_list_with_check:
-        return [], []
-    return tuple(zip(*element_list_with_check))
+        # Default is None, and alternatives is an empty list
+        return None, []
+
+    # Get default and alternatives
+    default_with_check, *alternatives_with_check = element_list_with_check
+
+    # Remove duplicated alternatives, and remove default if it appears among
+    # them
+    alternatives_with_check = set(alternatives_with_check)
+    alternatives_with_check.discard(default_with_check)
+
+    # Parse default and alternatives with check
+    default, default_check = default_with_check
+    alternatives, alternatives_check = parse_element_list_with_check(
+        alternatives_with_check
+    )
+
+    return default_check, alternatives_check
 
 
-def prepare_list_triples_for_check(
-    s: IRI,
-    element_list: list[Any],
-    graph: SimpleGraph | MultiGraph,
-) -> list[tuple[IRI, IRI, IRI]]:
-    """Prepare the triples from List, for graph check."""
+def index_exact_match(
+    element: IRI | Literal | Any, element_list: list[IRI | Literal | Any]
+) -> Optional[int]:
+    """
+    Get the index of element in a list, using exact matching
+    (eg. 0 != 0.0 != False).
+    """
 
-    # If list is empty, return empty list
-    if not element_list:
-        return []
+    # For every element of list
+    for i, el in enumerate(element_list):
+        # If it matches element exactly
+        if (
+            element == el
+            and isinstance(element, type(el))
+            and isinstance(el, type(element))
+        ):
+            # Return corresponding index
+            return i
 
-    # Create an iterator over the elements
-    element_iter = iter(element_list)
-
-    # Get the first object, and initialize triples
-    o = graph.value(s, RDF.rest)
-    triples = [
-        (s, RDF.first, next(element_iter)),
-        (s, RDF.rest, o),
-    ]
-
-    # As long as the list is not finished
-    while o != RDF.nil:
-        # Add triple
-        triples.append((o, RDF.type, RDF.List))
-
-        # Use o as subject
-        s = o
-
-        # Get its object with regard to RDF.rest, and add the related triples
-        o = graph.value(s, RDF.rest)
-        triples.extend(
-            [
-                (s, RDF.first, next(element_iter)),
-                (s, RDF.rest, o),
-            ]
-        )
-
-    return triples
+    # If not found, return None
+    return None

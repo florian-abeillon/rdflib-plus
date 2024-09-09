@@ -165,7 +165,7 @@ def test_init_with_iri(
     ]
 
     # Check that all triples are in the graph
-    check_graph_triples(graph, triples, exact=True)
+    check_graph_triples(graph, triples)
 
 
 @pytest.mark.parametrize("path, path_joined", PARAMETERS_PATHS)

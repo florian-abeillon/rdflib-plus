@@ -5,7 +5,7 @@ from typing import Optional
 
 from rdflib import RDF
 
-from rdflib_plus.models.rdf.rdfs_container import Container
+from rdflib_plus.models.rdf.rdfs_container import Collection, Container
 from rdflib_plus.models.rdf.rdfs_resource import ObjectType, ResourceOrIri
 
 
@@ -40,3 +40,15 @@ class Bag(Container):
         element = rd.choice(self._elements)
 
         return element
+
+    def extend(self, new_elements: list[ObjectType] | Collection) -> None:
+        """Extend Bag with new elements.
+
+        Args:
+            new_elements (
+                list[Resource | IRI | Literal | Any]
+                | Collection
+            ):
+                New elements to append to Bag.
+        """
+        super()._extend(new_elements)
