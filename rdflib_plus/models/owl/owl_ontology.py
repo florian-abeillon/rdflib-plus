@@ -4,13 +4,13 @@ import re
 import warnings
 from typing import Optional
 
-from rdflib import OWL, RDFS, Namespace
+from rdflib import OWL, RDFS, Graph, Namespace
 
 from rdflib_plus.config import DEFAULT_CHECK_TRIPLES, DEFAULT_LANGUAGE
 from rdflib_plus.definitions import RDFS_CLASSES
 from rdflib_plus.models.rdf.rdf_property import PropertyOrIri
 from rdflib_plus.models.rdf.rdfs_resource import Resource, ResourceOrIri
-from rdflib_plus.models.utils.types import ConstraintsType, GraphType, LangType
+from rdflib_plus.models.utils.types import ConstraintsType, LangType
 
 
 class Ontology(Resource):
@@ -29,7 +29,7 @@ class Ontology(Resource):
 
     def __init__(
         self,
-        graph: GraphType,
+        graph: Graph,
         label: str,
         version: Optional[str] = None,
         comment: Optional[str] = None,
@@ -40,7 +40,7 @@ class Ontology(Resource):
         """Initialize Ontology.
 
         Args:
-            graph (Graph | MultiGraph):
+            graph (Graph):
                 Graph to search or create Ontology into.
             label (str):
                 Ontology's label.

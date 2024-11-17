@@ -188,8 +188,13 @@ def test_set(
     # Set args to feed the method with
     args_method = (predicate, object_)
 
-    # Specify additional triples to check for
+    # Specify additional and potential removed triples to check for
     triples_add = [(resource.iri, predicate_iri, object_check)]
+    triples_rem = []
+    if not with_graph:
+        object_before = resource.get_value(predicate_iri)
+        if object_before is not None:
+            triples_rem = [(resource.iri, predicate_iri, object_before)]
 
     # Check if the method created the expected triples
     check_method(
@@ -197,6 +202,7 @@ def test_set(
         resource.set,
         args=args_method,
         triples_add=triples_add,
+        triples_rem=triples_rem,
         with_graph=with_graph,
     )
 
@@ -247,8 +253,13 @@ def test_set_with_lang(
     args_method = (predicate, object_)
     kwargs_method = {"lang": lang}
 
-    # Specify additional triples to check for
+    # Specify additional and potential removed triples to check for
     triples_add = [(resource.iri, predicate_iri, object_check)]
+    triples_rem = []
+    if not with_graph:
+        object_before = resource.get_value(predicate_iri)
+        if object_before is not None:
+            triples_rem = [(resource.iri, predicate_iri, object_before)]
 
     # Check if the method created the expected triples
     check_method(
@@ -257,6 +268,7 @@ def test_set_with_lang(
         args=args_method,
         kwargs=kwargs_method,
         triples_add=triples_add,
+        triples_rem=triples_rem,
         with_graph=with_graph,
     )
 
@@ -319,19 +331,21 @@ def test_set_with_replace(
 
     # Specify additional triples to check for
     triples_add = [(resource.iri, predicate_iri, object_2_check)]
-    triples_rem = [(resource.iri, predicate_iri, object_1_check)]
+    triples_rem = (
+        [(resource.iri, predicate_iri, object_1_check)]
+        if not with_graph
+        else []
+    )
 
     # Check if the method created the expected triples
-    if not with_graph:
-        kwargs = {"triples_rem": triples_rem}
     check_method(
         resource,
         resource.set,
         args=args_method,
         kwargs=kwargs_method,
         triples_add=triples_add,
+        triples_rem=triples_rem,
         with_graph=with_graph,
-        **kwargs
     )
 
 

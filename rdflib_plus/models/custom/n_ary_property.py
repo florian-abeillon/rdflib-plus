@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from rdflib import Namespace
+from rdflib import Graph, Namespace
 from rdflib import URIRef as IRI
 
 from rdflib_plus.config import (
@@ -17,7 +17,7 @@ from rdflib_plus.models.rdf.rdfs_resource import (
     Resource,
     ResourceOrIri,
 )
-from rdflib_plus.models.utils.types import ConstraintsType, GraphType, LangType
+from rdflib_plus.models.utils.types import ConstraintsType, LangType
 from rdflib_plus.namespaces import DEFAULT_NAMESPACE
 
 # Define specific custom types
@@ -62,7 +62,7 @@ class NaryProperty(Property):
 
     def __init__(
         self,
-        graph: GraphType,
+        graph: Graph,
         label: str,
         namespace: Optional[Namespace] = None,
         super_property: Optional[SuperPropertyType] = None,
@@ -74,7 +74,7 @@ class NaryProperty(Property):
         """Initialize Property.
 
         Args:
-            graph (Graph | MultiGraph):
+            graph (Graph):
                 Graph to search or create Property into.
             label (str):
                 Property's label.
@@ -125,7 +125,7 @@ class NaryProperty(Property):
         self,
         incoming: Optional[UnparsedPairListType] = None,
         outgoing: Optional[UnparsedPairListType] = None,
-        graph: Optional[GraphType] = None,
+        graph: Optional[Graph] = None,
         check_triples: Optional[bool] = None,
     ) -> Resource:
         """Create instance of n-ary property
@@ -151,7 +151,7 @@ class NaryProperty(Property):
                 Predicate and object of triple to add from instance,
                 with indication whether to add (default behavior) or to set it.
                 Defaults to None.
-            graph (Graph | MultiGraph | None, optional):
+            graph (Graph | None, optional):
                 Graph to search or create instance into. Defaults to None.
             check_triples (bool | None, optional):
                 Whether to check triples that are added or set using Resource.

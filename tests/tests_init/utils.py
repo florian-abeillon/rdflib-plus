@@ -35,10 +35,7 @@ def check_init(
     graph = MultiGraph() if namespace is not None else SimpleGraph()
     if kwargs is None:
         kwargs = {}
-    print("KWARGS", kwargs)
     resource = model(graph, **kwargs)
-
-    # print(graph.serialize())
 
     # Set list of additional triples
     if triples_add is None:
@@ -95,13 +92,7 @@ def check_init(
     # If necessary
     if check_triples:
         # Define triples to look for
-        triples = [
-            (
-                iri,
-                RDF.type,
-                model_type,
-            ),
-        ]
+        triples = [(iri, RDF.type, model_type)]
         for p, o in triples_add:
             triples.append((iri, p, o))
 
@@ -183,24 +174,3 @@ def check_init_blank_node_object(
         triples_add=triples_add,
         check_triples=check_triples,
     )
-
-
-def get_element_set(
-    element_list: list[IRI | Literal | Any],
-    element_list_check: list[IRI | Literal],
-) -> tuple[list[IRI | Literal | Any, IRI | Literal]]:
-    """Remove duplicated elements from list, using their formatted form."""
-
-    # Initialize sets
-    element_set = []
-    element_set_check = []
-
-    # For every element
-    for i, (el, el_check) in enumerate(zip(element_list, element_list_check)):
-        # If element was not already encountered
-        if el_check not in element_list_check[:i]:
-            # Add it and its formatted form to the sets
-            element_set.append(el)
-            element_set_check.append(el_check)
-
-    return element_set, element_set_check

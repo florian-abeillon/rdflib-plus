@@ -5,7 +5,7 @@ from typing import Optional, Union
 from urllib.parse import urldefrag
 
 from inflection import camelize
-from rdflib import RDFS, Namespace
+from rdflib import RDFS, Graph, Namespace
 from rdflib import URIRef as IRI
 
 from rdflib_plus.config import (
@@ -17,7 +17,6 @@ from rdflib_plus.definitions import RDFS_CLASSES
 from rdflib_plus.models.rdf.rdfs_resource import Resource, ResourceOrIri
 from rdflib_plus.models.utils.types import (
     ConstraintsType,
-    GraphType,
     IdentifierType,
     LangType,
 )
@@ -28,6 +27,8 @@ from rdflib_plus.utils import format_label, legalize_for_iri
 SuperClassType = Union["Class", IRI, list[Union["Class", IRI]]]
 
 
+# TODO: Have multiple superclasses
+# TODO: add_super_class() class method
 class Class(Resource):
     """RDFS Class constructor"""
 
@@ -48,7 +49,7 @@ class Class(Resource):
 
     def __init__(
         self,
-        graph: GraphType,
+        graph: Graph,
         label: str,
         identifier_property: Optional[IRI] = None,
         namespace: Optional[Namespace] = None,
@@ -64,7 +65,7 @@ class Class(Resource):
         """Initialize Class.
 
         Args:
-            graph (Graph | MultiGraph):
+            graph (Graph):
                 Graph to search or create Class into.
             label (str):
                 Class's label.
@@ -154,7 +155,7 @@ class Class(Resource):
 
     def __call__(
         self,
-        graph: Optional[GraphType] = None,
+        graph: Optional[Graph] = None,
         identifier: Optional[IdentifierType] = None,
         label: Optional[str] = None,
         lang: LangType = DEFAULT_LANGUAGE,
@@ -163,7 +164,7 @@ class Class(Resource):
         """Create instance of Class.
 
         Args:
-            graph (Graph | MultiGraph | None, optional):
+            graph (Graph | None, optional):
                 Graph to search or create instance into. Defaults to None.
             identifier (str | int | None, optional):
                 Instance's identifier. Defaults to None.
@@ -317,6 +318,7 @@ class Class(Resource):
             (Resource,),
             {
                 "_type": self,
+                # "_type": self._type,
                 "_identifier_property": self._identifier_property,
                 "_constraints": self.constraints_instance,
             },

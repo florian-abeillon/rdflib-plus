@@ -1,8 +1,9 @@
 """RDF List constructor"""
 
-from typing import Callable, Optional
+from typing import Callable, Iterable, Optional, Union
 
-from rdflib import RDF, Namespace
+from rdflib import RDF, Graph, Namespace
+from rdflib import URIRef as IRI
 
 from rdflib_plus.config import DEFAULT_CHECK_TRIPLES
 from rdflib_plus.definitions import RDFS_CLASSES
@@ -12,7 +13,7 @@ from rdflib_plus.models.rdf.rdfs_resource import (
     ResourceOrIri,
 )
 from rdflib_plus.models.utils.collection import Collection
-from rdflib_plus.models.utils.types import ConstraintsType, GraphType
+from rdflib_plus.models.utils.types import ConstraintsType
 
 
 class List(Collection):
@@ -21,6 +22,7 @@ class List(Collection):
     # List's RDF type
     _type: ResourceOrIri = RDF.List
 
+    # TODO: No label, blank node
     # List's property constraints
     _constraints: ConstraintsType = Collection.update_constraints(
         RDFS_CLASSES[_type]["constraints"]
@@ -28,7 +30,7 @@ class List(Collection):
 
     def __init__(
         self,
-        graph: GraphType,
+        graph: Graph,
         elements: Optional[list[ObjectType] | Collection] = None,
         namespace: Optional[Namespace] = None,
         local: bool = False,
@@ -37,7 +39,7 @@ class List(Collection):
         """Initialize List.
 
         Args:
-            graph (Graph | MultiGraph):
+            graph (Graph):
                 Graph to search or create List into.
             elements (
                 list[
@@ -59,7 +61,7 @@ class List(Collection):
         """
 
         # Initialize sublists list
-        self._sublists: list[Resource] = []
+        self._sublists: list[self._Sublist] = []
 
         # Create List
         super().__init__(
@@ -87,19 +89,19 @@ class List(Collection):
                 Index of element in List. Can be negative.
 
         Returns:
-            Resource | IRI | Literal | Any: Element at given index.
+            Resource | IRI | Literal | Any:
+                Element at given index.
         """
         return self._elements[index]
 
-    def __reversed__(self) -> "List":
-        """Reverse order of elements of List, and returns self.
+    def __reversed__(self) -> Iterable[ObjectType]:
+        """Returns elements of List in reverse order.
 
         Returns:
-            List: Reversed List.
+            Iterable[IRI | Literal | Any]:
+                Iterable over elements of List in reverse order .
         """
-
-        self.reverse()
-        return self
+        return iter(self.elements[::-1])
 
     def __setitem__(self, index: int, element: ObjectType) -> None:
         """Replace element of List at given index.
@@ -111,13 +113,13 @@ class List(Collection):
                 New value of element.
         """
 
-        # Update value and its formatted form in elements lists
-        self._elements[index] = element
-        self._elements_formatted[index] = self._format_object(element)
-
         # Update value in graph
         sublist = self._sublists[index]
         sublist.replace(RDF.first, element)
+
+        # Update value and its formatted form in elements lists
+        self._elements[index] = element
+        self._elements_formatted[index] = sublist.get_value(RDF.first)
 
     def _append(self, element: ObjectType) -> None:
         """Append element to the end of List.
@@ -127,30 +129,47 @@ class List(Collection):
                 Element to append to List.
         """
 
-        # If there are already elements in List
-        if len(self) > 0:
-            # Create a new sublist, but do not fill it with the elements
-            # (it would not be efficient)
-            new_sublist = self.__class__(self._graph)
+        # Create new Sublist
+        new_sublist = self._build_sublist(element)
 
-            # Get last sublist, and replace its 'rest' attribute
+        # If List is not empty, get last sublist and link it to new one
+        if self:
             last_sublist = self._sublists[-1]
             last_sublist.replace(RDF.rest, new_sublist)
 
-        # Otherwise, if element is the first of List
-        else:
-            # Set current list as new sublist
-            new_sublist = self
-
-        # Set new value of element in graph
-        new_sublist.set(RDF.first, element)
-        new_sublist.set(RDF.rest, RDF.nil)
-
-        # Append element and its formatted form to elements lists
+        # Append element and its formatted form to element lists
         self._elements.append(element)
-        self._elements_formatted.append(self._format_object(element))
-        # Append new sublist to sublists list
+        self._elements_formatted.append(new_sublist.get_value(RDF.first))
+        # Append new sublist to sublist list
         self._sublists.append(new_sublist)
+
+    def _build_sublist(
+        self, first: ObjectType, rest: Union["List", IRI] = RDF.nil
+    ) -> "List":
+        """Create new Sublist.
+
+        Args:
+            first (Resource | IRI | Literal | Any):
+                Element to initialize List with.
+            rest (_Sublist | IRI, optional):
+                Rest to initialize List with. Defaults to RDF.nil.
+
+        Returns:
+            _Sublist: New sublist.
+        """
+
+        # Create new sublist, or use List if it is empty
+        sublist = (
+            List(self._graph, check_triples=self._check_triples)
+            if self
+            else self
+        )
+
+        # Set RDF.first and RDF.rest properties
+        sublist.set(RDF.first, first)
+        sublist.set(RDF.rest, rest)
+
+        return sublist
 
     def _pop(self, index: int) -> ObjectType:
         """Delete and return element of List at given index.
@@ -161,50 +180,77 @@ class List(Collection):
                 Can be negative.
 
         Returns:
-            Resource | IRI | Literal | Any: Removed element.
+            Resource | IRI | Literal | Any:
+                Removed element.
         """
 
-        # Format index
-        index = self._format_index(index)
-
-        # Pop sublist, and completely remove sublist's blank node
+        # Pop sublist from list, and delete respective element
         sublist = self._sublists.pop(index)
+        element = self._elements.pop(index)
+        del self._elements_formatted[index]
 
-        # If List is now empty
-        if len(self) == 0:
-            # Only remove RDF.first and RDF.rest
+        # If List is now empty, just clear the sublist
+        # (keep the other properties)
+        if not self:
             sublist.remove(RDF.first)
             sublist.remove(RDF.rest)
 
-        # Otherwise, if there are other elements
+        # Otherwise, if List still has other elements
         else:
-            # Completely remove the subist from the graph
+            # Delete the current sublist whatsoever
             sublist.remove(None)
 
-            # If popping the first element, the first sublist
-            # (ie. the List itself) needs to be removed
+            # If popping the first element
+            index = self._format_index(index)
             if index == 0:
-                # Change List's identifiers into the first sublist's
+                # Get the new first sublist
                 first_sublist = self._sublists[0]
-                self._id = first_sublist.id
-                self._identifier = first_sublist.iri
+
+                # Transfer main sublist to the new one
+                self._transfer_main(first_sublist)
 
             # Otherwise
             else:
-                # Get previous and nex sublists (or RDF.nil if last element)
+                # Get previous sublist and rest
                 prev_sublist = self._sublists[index - 1]
-                next_sublist = (
+                rest = (
                     self._sublists[index] if index < len(self) - 1 else RDF.nil
                 )
 
                 # Link previous sublist with next one
-                prev_sublist.replace(RDF.rest, next_sublist)
-
-        # Delete respective element
-        element = self._elements[index]
-        del self._elements_formatted[index]
+                prev_sublist.replace(RDF.rest, rest)
 
         return element
+
+    def _transfer_main(self, new_main: "List") -> None:
+        """Transfer all the properties to the new main sublist.
+
+        Args:
+            new_main (List):
+                New main sublist.
+        """
+
+        # For every triple with List as subject
+        for p, o in self.predicate_objects():
+
+            # If triple is one of sublist's, ignore it
+            if p in [RDF.type, RDF.first, RDF.rest]:
+                continue
+
+            # Otherwise, remove the triple and set it to the new sublist
+            self.remove(p, o)
+            new_main.set(p, o)
+
+        # For every triple with List as object
+        for s, p in self.subject_predicates():
+
+            # Remove the triple and set it with the new sublist
+            s.remove(p, self)
+            s.set(p, new_main)
+
+        # Change List's identifiers into the new sublist's
+        self._id = new_main.id
+        self._identifier = new_main.iri
 
     def append(self, element: ObjectType) -> None:
         """Append element to the end of List.
@@ -218,18 +264,17 @@ class List(Collection):
     def clear(self) -> None:
         """Remove all elements of List."""
 
-        # If List is already empty, do nothing
-        if not self._sublists:
-            return
-
-        # Only remove RDF.first and RDF.rest from the first sublist
-        self._sublists[0].remove(RDF.first)
-        self._sublists[0].remove(RDF.rest)
-
         # For every sublist
-        for sublist in self._sublists[1:]:
-            # Completely remove the sublist from the graph
-            sublist.remove(None)
+        for i, sublist in enumerate(self._sublists):
+
+            # If first sublist, just empty it
+            if i == 0:
+                sublist.remove(RDF.first)
+                sublist.remove(RDF.rest)
+
+            # Otherwise, delete it whatsoever
+            else:
+                sublist.remove(None)
 
         # Clear elements and sublists lists
         self._elements.clear()
@@ -274,26 +319,31 @@ class List(Collection):
                 Element to insert into List.
         """
 
-        index = self._format_index(index)
+        # If inserting after the end of the list, just append element
+        index = self._format_index(index, in_range=False)
         if index > len(self) - 1:
             self._append(element)
+            return
 
-        # Create a new sublist, and initialize it with element
-        new_sublist = List(self._graph, elements=[element])
+        # Initialize new sublist
+        new_sublist = self._build_sublist(element, rest=self._sublists[index])
 
-        # Get next sublist, and set new sublist's "rest" attribute
-        next_sublist = self._sublists[index]
-        new_sublist.set(RDF.rest, next_sublist)
-
-        # If there is another element before new element
+        # If not inserting the first element,
+        # get previous sublist and replace its "rest" attribute
         if index > 0:
-            # Get previous sublist, and replace its "rest" attribute
             prev_sublist = self._sublists[index - 1]
             prev_sublist.replace(RDF.rest, new_sublist)
 
+        # Otherwise, if inserting the first element while there are other
+        # elements, transfer main sublist to the new one
+        elif self:
+            self._transfer_main(new_sublist)
+
         # Insert new sublist into the elements and sublists lists
         self._elements.insert(index, element)
-        self._elements_formatted.insert(index, self._format_object(element))
+        self._elements_formatted.insert(
+            index, new_sublist.get_value(RDF.first)
+        )
         self._sublists.insert(index, new_sublist)
 
     def pop(self, index: int = -1) -> ObjectType:
@@ -311,7 +361,7 @@ class List(Collection):
 
     def reverse(self) -> None:
         """Reverse order of elements of List."""
-        self.elements = reversed(self.elements)
+        self.elements = list(reversed(self.elements))
 
     def sort(
         self, key: Optional[Callable] = None, reverse: bool = False
@@ -325,4 +375,4 @@ class List(Collection):
                 Whether to sort in reverse (ie. descending) order.
                 Defaults to False.
         """
-        self.elements = sorted(self._elements, key=key, reverse=reverse)
+        self.elements = list(sorted(self._elements, key=key, reverse=reverse))

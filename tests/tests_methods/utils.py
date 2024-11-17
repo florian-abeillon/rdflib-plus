@@ -4,76 +4,46 @@ import copy
 import random as rd
 from typing import Any, Callable, Optional
 
-from rdflib import RDF, Literal
+from rdflib import RDF, Graph, Literal
 from rdflib import URIRef as IRI
 
-from rdflib_plus import (
-    Alt,
-    Bag,
-    Class,
-    List,
-    MultiGraph,
-    Resource,
-    Seq,
-    SimpleGraph,
-)
+from rdflib_plus import Alt, Bag, Class, List, Resource, Seq, SimpleGraph
 from tests.parameters import PARAMETERS_ELEMENT_LISTS, PARAMETERS_IDENTIFIERS
-from tests.utils import check_rem_add, parse_element_list_with_check
-
-
-def build_alt(
-    element_list: Optional[list[IRI | Literal | Any]] = None,
-    graph: Optional[SimpleGraph | MultiGraph] = None,
-) -> Alt:
-    """Build Alt from element list."""
-
-    # If no element list is specified
-    if element_list is None:
-        # Randomly select list of elements
-        element_list = rd.choice(PARAMETERS_ELEMENT_LISTS)
-
-    # If no graph is specified, initialize it
-    if graph is None:
-        graph = SimpleGraph()
-
-    # Create Alt
-    if element_list:
-        default, *alternatives = element_list
-        alt = Alt(graph, default=default, alternatives=alternatives)
-    else:
-        alt = Alt(graph)
-
-    return alt
+from tests.utils import check_graph_diff
 
 
 def build_collection(
-    model: type,
-    element_list: Optional[list[IRI | Literal | Any]] = None,
-    graph: Optional[SimpleGraph | MultiGraph] = None,
-) -> Alt | Bag | List | Seq:
+    type_: type,
+    graph: Optional[Graph] = None,
+    not_empty: bool = False,
+    **kwargs,
+) -> tuple[
+    Alt | Bag | List | Seq,
+    list[IRI | Literal | Any],
+    list[IRI | Literal],
+]:
     """Build Collection object from (random) element list."""
 
-    # If no element list is specified
-    if element_list is None:
-        # Randomly select list of elements
-        element_list = rd.choice(PARAMETERS_ELEMENT_LISTS)
+    # Randomly select list of elements
+    elements, elements_check = rd.choice(PARAMETERS_ELEMENT_LISTS)
 
-    # If model is Alt, create an Alt
-    if model == Alt:
-        return build_alt(element_list=element_list, graph=graph)
+    # If specified, make sure that element list is not empty
+    if not_empty:
+        while len(elements) == 0:
+            elements, elements_check = rd.choice(PARAMETERS_ELEMENT_LISTS)
 
-    # If no graph is specified, initialize it
+    # If no graph is specified, initialize one
     if graph is None:
         graph = SimpleGraph()
 
     # Create object
-    collection = model(graph, elements=element_list)
+    collection = type_(graph, elements=elements, **kwargs)
 
-    return collection
+    return collection, elements, elements_check
 
 
 def build_object(
-    graph: SimpleGraph | MultiGraph,
+    graph: Graph,
     predicate_iri: IRI,
     object_: Any,
     is_object_resource: bool,
@@ -91,7 +61,7 @@ def build_object(
 
 
 def build_predicate_object(
-    graph: SimpleGraph | MultiGraph,
+    graph: Graph,
     predicate_iri: IRI,
     is_predicate_resource: bool,
     object_: Any,
@@ -125,44 +95,6 @@ def build_resource(model: type = Resource) -> Resource:
     return resource
 
 
-# TODO: Makes sense to still have this function?
-def check_elements(
-    collection: Alt | Bag | List | Seq,
-    element_list: list[Any],
-    element_set: Optional[list[Any]] = None,
-):
-    """
-    Check whether collection_elements is the appropriate representation of
-    element_list, given the type of Collection object.
-    """
-
-    # If Collection object is an Alt or a Bag
-    if isinstance(collection, (Alt, Bag)):
-        # It it is an Alt, remove duplicates from element list
-        if isinstance(collection, Alt):
-            if element_set is None:
-                element_set = []
-                for element in element_list:
-                    if not any(
-                        element == el
-                        and isinstance(element, type(el))
-                        and isinstance(el, type(element))
-                        for el in element_set
-                    ):
-                        element_set.append(element)
-            element_list = element_set
-
-        # Check that there are as many elements in Collection object as in list
-        assert len(collection.elements) == len(element_list)
-        # Check that all elements in list also appear in Collection
-        assert all(element in collection.elements for element in element_list)
-
-    # Otherwise, if object is a List or a Seq
-    else:
-        # Check that the list of elements from Collection is the same as list
-        assert list(collection.elements) == list(element_list)
-
-
 def check_method(
     resource: Resource,
     method: Callable,
@@ -171,7 +103,7 @@ def check_method(
     triples_add: Optional[list[tuple]] = None,
     triples_rem: Optional[list[tuple]] = None,
     with_graph: bool = False,
-    graph: Optional[SimpleGraph | MultiGraph] = None,
+    graph: Optional[Graph] = None,
 ) -> None:
     """Check call to a Resource's method."""
 
@@ -216,7 +148,7 @@ def check_method(
         triples_add = []
 
     # Check the correctness of the removed and additional triples
-    check_rem_add(graph_before, graph, triples_rem, triples_add)
+    check_graph_diff(graph_before, graph, triples_rem, triples_add)
 
 
 def check_str(
@@ -253,50 +185,66 @@ def get_another_parameter(
 
 
 def get_default_alternatives(
-    element_list_with_check: list[tuple[IRI | Literal | Any, IRI | Literal]],
+    elements: list[IRI | Literal | Any],
 ) -> tuple[Optional[IRI | Literal | Any], list[IRI | Literal | Any]]:
     """Get default and alternatives from list of elements."""
 
     # If list is empty
-    if not element_list_with_check:
+    if not elements:
         # Default is None, and alternatives is an empty list
         return None, []
 
     # Get default and alternatives
-    default_with_check, *alternatives_with_check = element_list_with_check
+    default, *alternatives = elements
 
-    # Remove duplicated alternatives, and remove default if it appears among
-    # them
-    alternatives_with_check = set(alternatives_with_check)
-    alternatives_with_check.discard(default_with_check)
+    return default, alternatives
 
-    # Parse default and alternatives with check
-    default, default_check = default_with_check
-    alternatives, alternatives_check = parse_element_list_with_check(
-        alternatives_with_check
+
+def count_exact_match(
+    element: IRI | Literal | Any, elements: list[IRI | Literal | Any]
+) -> int:
+    """
+    Count the number of times element appear in a list, using exact matching
+    (eg. 0 != 0.0 != False).
+    """
+    return sum(
+        (
+            element == el
+            and isinstance(element, type(el))
+            and isinstance(el, type(element))
+        )
+        for el in elements
     )
-
-    return default_check, alternatives_check
 
 
 def index_exact_match(
-    element: IRI | Literal | Any, element_list: list[IRI | Literal | Any]
+    element: IRI | Literal | Any,
+    elements: list[IRI | Literal | Any],
+    start: int = 0,
+    end: int = -1,
 ) -> Optional[int]:
     """
     Get the index of element in a list, using exact matching
     (eg. 0 != 0.0 != False).
     """
 
+    # Format start and end indices
+    n = len(elements)
+    if start < 0:
+        start += n
+    if end < 0:
+        end += n
+
     # For every element of list
-    for i, el in enumerate(element_list):
-        # If it matches element exactly
+    for i, el in enumerate(elements[start : end + 1]):
+
+        # If it matches element exactly, return the corresponding index
         if (
             element == el
             and isinstance(element, type(el))
             and isinstance(el, type(element))
         ):
-            # Return corresponding index
-            return i
+            return i + start
 
     # If not found, return None
     return None

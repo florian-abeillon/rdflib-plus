@@ -11,17 +11,15 @@ from tests.tests_init.utils import check_init_blank_node_object
 from tests.utils import check_graph_list
 
 
-@pytest.mark.parametrize(
-    "element_list, element_list_check", PARAMETERS_ELEMENT_LISTS
-)
+@pytest.mark.parametrize("elements, elements_check", PARAMETERS_ELEMENT_LISTS)
 def test_init_with_elements(
-    element_list: list[IRI | Literal | Any],
-    element_list_check: list[IRI | Literal],
+    elements: list[IRI | Literal | Any],
+    elements_check: list[IRI | Literal],
 ):
     """Test List creation with element list."""
 
     # Set kwargs to be used by constructor
-    kwargs = {"elements": element_list}
+    kwargs = {"elements": elements}
 
     # Test constructor
     list_ = check_init_blank_node_object(
@@ -31,7 +29,7 @@ def test_init_with_elements(
     )
 
     # Check elements property
-    assert list_.elements == element_list
+    assert list_.elements == elements
 
     # Check that the graph contains the list with all the elements
-    check_graph_list(list_.iri, element_list_check, list_.graph)
+    check_graph_list(list_, elements_check)

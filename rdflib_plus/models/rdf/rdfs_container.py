@@ -24,6 +24,22 @@ class Container(Collection):
         RDFS_CLASSES[_type]["constraints"]
     )
 
+    def _append(self, element: ObjectType) -> None:
+        """Append element to the end of Container.
+
+        Args:
+            element (Resource | IRI | Literal | Any):
+                Element to append to Container.
+        """
+
+        # Set element's value in graph, with appropriate index
+        predicate = self._get_predicate(len(self))
+        self.set(predicate, element)
+
+        # Append element and its formatted form to the elements lists
+        self._elements.append(element)
+        self._elements_formatted.append(self.get_value(predicate))
+
     def _get_predicate(self, index: int) -> IRI:
         """Return predicate corresponding to the index-th element.
 
@@ -36,29 +52,12 @@ class Container(Collection):
         """
 
         # Format index, and update it to start at 1 (not 0)
-        index = self._format_index(index)
-        index += 1
+        index = self._format_index(index, in_range=False)
 
         # Build predicate
-        predicate = RDF[f"_{index}"]
+        predicate = RDF[f"_{index + 1}"]
 
         return predicate
-
-    def _append(self, element: ObjectType) -> None:
-        """Append element to the end of Container.
-
-        Args:
-            element (Resource | IRI | Literal | Any):
-                Element to append to Container.
-        """
-
-        # Append element and its formatted form to the elements lists
-        self._elements.append(element)
-        self._elements_formatted.append(self._format_object(element))
-
-        # Set element's value in graph, with appropriate index
-        predicate = self._get_predicate(len(self) - 1)
-        self.set(predicate, element)
 
     def _insert(self, index: int, new_element: ObjectType) -> None:
         """Insert element at index-th position of Container.
@@ -67,20 +66,21 @@ class Container(Collection):
             index (int):
                 Index to insert element at.
             new_element (ObjectType):
-                Element to insert into Seq.
+                Element to insert into Container.
         """
 
-        # Insert new element and its formatted form into elements lists
+        # Insert new element into elements list
         self._elements.insert(index, new_element)
-        self._elements_formatted.insert(
-            index, self._format_object(new_element)
-        )
 
-        # For every element from index
+        # For every element from index-th on
         for i, element in enumerate(self._elements[index:]):
             # Update value in graph
             predicate = self._get_predicate(index + i)
             self.set(predicate, element, replace=True)
+
+        # Insert its formatted form into elements list
+        predicate = self._get_predicate(index)
+        self._elements_formatted.insert(index, self.get_value(predicate))
 
     def _pop(self, index: int) -> ObjectType:
         """Delete and return element of Container at given index.
@@ -94,16 +94,14 @@ class Container(Collection):
             Resource | IRI | Literal | Any: Removed element.
         """
 
-        # Format index, and update it to start at 1 (not 0)
-        index = self._format_index(index)
-
         # For every element from index
+        index = self._format_index(index)
         for i, element in enumerate(self._elements[index + 1 :]):
             # Update value in graph
             predicate = self._get_predicate(index + i)
             self.replace(predicate, element)
 
-        # Remove last link to element in graph
+        # Remove link to element in graph
         predicate = self._get_predicate(len(self) - 1)
         self.remove(predicate)
 
@@ -116,9 +114,8 @@ class Container(Collection):
     def clear(self) -> None:
         """Remove all elements of Container."""
 
-        # For every element
+        # For every element, remove value in graph
         for i in range(len(self)):
-            # Remove value in graph
             predicate = self._get_predicate(i)
             self.remove(predicate)
 

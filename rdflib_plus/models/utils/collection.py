@@ -2,12 +2,11 @@
 
 from typing import Iterable, Optional, Union
 
-from rdflib import Namespace
+from rdflib import Graph, Namespace
 from rdflib import URIRef as IRI
 
 from rdflib_plus.config import DEFAULT_CHECK_TRIPLES
 from rdflib_plus.models.rdf.rdfs_resource import ObjectType, Resource
-from rdflib_plus.models.utils.types import GraphType
 
 
 class Collection(Resource):
@@ -37,9 +36,8 @@ class Collection(Resource):
 
     def __init__(
         self,
-        graph: GraphType,
-        # Typehint: Optional[list[ObjectType] | "Collection"]
-        elements: Optional[list[ObjectType]] = None,
+        graph: Graph,
+        elements: Union[list[ObjectType], "Collection", None] = None,
         namespace: Optional[Namespace] = None,
         local: bool = False,
         check_triples: bool = DEFAULT_CHECK_TRIPLES,
@@ -47,7 +45,7 @@ class Collection(Resource):
         """Initialize Collection.
 
         Args:
-            graph (Graph | MultiGraph):
+            graph (Graph):
                 Graph to search or create Collection into.
             elements (
                 list[Resource | IRI | Literal | Any]
@@ -88,7 +86,7 @@ class Collection(Resource):
         self,
         sequence: Union[list[ObjectType], set[ObjectType], "Collection"],
     ) -> "Collection":
-        """Returns the result of the addition of a sequence.
+        """Returns the result of the addition to a sequence.
 
         Args:
             sequence (
@@ -136,6 +134,27 @@ class Collection(Resource):
         except ValueError:
             return False
 
+    def __iadd__(
+        self,
+        sequence: Union[list[ObjectType], set[ObjectType], "Collection"],
+    ) -> "Collection":
+        """Returns the result of the addition of a sequence.
+
+        Args:
+            sequence (
+                list[Resource | IRI | Literal | Any]
+                | set[Resource | IRI | Literal | Any]
+                | Collection
+            ):
+                Sequence of elements that must be added.
+
+        Returns:
+            Collection: Current Collection object, extended with the specified
+                        elements.
+        """
+        self._extend(sequence)
+        return self
+
     def __iter__(self) -> Iterable:
         """Returns an iterator on the elements of Collection.
 
@@ -178,21 +197,24 @@ class Collection(Resource):
         for new_element in new_elements:
             self._append(new_element)
 
-    def _format_index(self, index: int) -> int:
+    def _format_index(self, index: int, in_range: bool = True) -> int:
         """Turn negative indices into "real" (positive) index.
 
         Args:
             index (int):
                 Index to format.
+            in_range (bool, optional):
+                Whether to check that index is indeed in Collection's range.
+                Defaults to True.
 
         Returns:
             int: Formatted index (integer between 0 and
                  the number of elements).
         """
 
-        # If index is not valid given the length of element list
-        if len(self) > 0 and not -len(self) <= index < len(self):
-            # Raise an error
+        # If index is not valid given the length of element list,
+        # raise an error
+        if len(self) and in_range and not -len(self) <= index < len(self):
             raise IndexError(
                 f"Index '{index}' is not valid with object of length "
                 f"{len(self)}."
@@ -208,7 +230,7 @@ class Collection(Resource):
     def _index(
         self, element: ObjectType, start: int = 0, end: int = -1
     ) -> int:
-        """Get index of element in Collection.
+        """Get  index of element in Collection.
 
         Args:
             element (Resource | IRI | Literal | Any):
@@ -223,6 +245,7 @@ class Collection(Resource):
             int: Index of element in Collection.
         """
 
+        # TODO: What if Collection does contain None?
         # Format element for graph input
         element_formatted = self._format_object(element)
 

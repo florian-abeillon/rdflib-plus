@@ -26,6 +26,7 @@ from tests.parameters.properties import (
     PARAMETERS_PROPERTIES_RESOURCE,
 )
 
+# TODO: Remove model name?
 # 0 - Object constructor (type)
 # 1 - Model name (str)
 # 2 - Model IRI type (IRI)
@@ -68,16 +69,32 @@ PARAMETERS_SEQ: tuple[type, str, IRI, set[IRI]] = (
     PARAMETERS_PROPERTIES_CONTAINER,
 )
 
-PARAMETERS_COLLECTIONS: list[tuple[type, str, IRI, set[IRI]]] = [
+PARAMETERS_UNORDERED_COLLECTIONS: list[tuple[type, str, IRI, set[IRI]]] = [
     PARAMETERS_ALT,
     PARAMETERS_BAG,
+]
+PARAMETERS_ORDERED_COLLECTIONS: list[tuple[type, str, IRI, set[IRI]]] = [
     PARAMETERS_LIST,
     PARAMETERS_SEQ,
+]
+PARAMETERS_COLLECTIONS: list[tuple[type, str, IRI, set[IRI]]] = [
+    *PARAMETERS_UNORDERED_COLLECTIONS,
+    *PARAMETERS_ORDERED_COLLECTIONS,
 ]
 PARAMETERS_BLANK_NODE_OBJECTS: list[tuple[type, str, IRI, set[IRI]]] = [
     PARAMETERS_RESOURCE,
     *PARAMETERS_COLLECTIONS,
 ]
+
+
+# 0 - Object constructor (type)
+PARAMETERS_MODELS_ORDERED_COLLECTIONS = [
+    model for model, *_ in PARAMETERS_ORDERED_COLLECTIONS
+]
+PARAMETERS_MODELS_UNORDERED_COLLECTIONS = [
+    model for model, *_ in PARAMETERS_UNORDERED_COLLECTIONS
+]
+PARAMETERS_MODELS_COLLECTIONS = [model for model, *_ in PARAMETERS_COLLECTIONS]
 
 
 # 0 - Object constructor (type)

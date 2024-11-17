@@ -4,13 +4,12 @@ import random as rd
 import warnings
 from typing import Optional
 
-from rdflib import RDF, Namespace
+from rdflib import RDF, Graph, Namespace
 
 from rdflib_plus.config import DEFAULT_CHECK_TRIPLES
 from rdflib_plus.models.rdf.rdfs_container import Container
 from rdflib_plus.models.rdf.rdfs_resource import ObjectType, ResourceOrIri
 from rdflib_plus.models.utils.collection import Collection
-from rdflib_plus.models.utils.types import GraphType
 from rdflib_plus.namespaces import stringify_iri
 
 # Define specific custom type
@@ -48,19 +47,6 @@ class Alt(Container):
         """
         self.elements = self._build_elements(self.default, new_alternatives)
 
-        # # If new_alternatives is a Collection, extract its elements
-        # if isinstance(new_alternatives, Collection):
-        #     new_alternatives = new_alternatives.elements
-
-        # # If necessary, remove default from new_alternatives
-        # default = self.default
-        # # TODO
-        # if default in new_alternatives:
-        #     new_alternatives = new_alternatives.remove(default)
-
-        # # Set new_alternatives
-        # self.elements = [default] + new_alternatives
-
     @default.setter
     def default(self, new_default: ObjectType) -> None:
         """Set a new default element to Alt.
@@ -70,18 +56,21 @@ class Alt(Container):
                 New default element of Alt.
         """
 
-        # Remove new default element from Alt, if it was already included
-        self.discard_element(new_default)
+        # If duplicated elements are not allowed
+        if not self._allow_duplicates:
+            # Remove new default element from Alt, if it was already included
+            self.discard_element(new_default)
 
         # Insert new default element
         self._insert(0, new_default)
 
     def __init__(
         self,
-        graph: GraphType,
+        graph: Graph,
         default: Optional[ObjectType] = None,
         alternatives: Optional[CollectionType] = None,
         elements: Optional[CollectionType] = None,
+        allow_duplicates: bool = True,
         namespace: Optional[Namespace] = None,
         local: bool = False,
         check_triples: bool = DEFAULT_CHECK_TRIPLES,
@@ -89,7 +78,7 @@ class Alt(Container):
         """Initialize Alt.
 
         Args:
-            graph (Graph | MultiGraph):
+            graph (Graph):
                 Graph to search or create Alt into.
             default (Resource | IRI | Literal | Any | None):
                 Default element of Alt. Defaults to None.
@@ -103,12 +92,15 @@ class Alt(Container):
                 Alternatives to put in Alt at its creation. Defaults to None.
             elements (
                 list[Resource | IRI | Literal | Any]
+                | set[Resource | IRI | Literal | Any]
                 | Collection
                 | None,
                 optional
             ):
                 Elements to put in Alt at its creation.
                 Defaults to None.
+            allow_duplicates (bool, optional):
+                Whether to allow duplicated alternatives. Defaults to True.
             namespace (Namespace | None, optional):
                 Namespace to search or create Alt into. Defaults to None.
             local (bool, optional):
@@ -118,6 +110,9 @@ class Alt(Container):
                 Whether to check triples that are added or set.
                 Defaults to DEFAULT_CHECK_TRIPLES.
         """
+
+        # Remember whether to allow duplicated elements
+        self._allow_duplicates = allow_duplicates
 
         # If not elements are specified
         if elements is None:
@@ -137,52 +132,6 @@ class Alt(Container):
                 "'alternatives' kwarg."
             )
 
-        # # If no alternatives are specified
-        # if alternatives is None or not alternatives:
-        #     # Alt's elements list consists of default element (if specified)
-        #     # otherwise nothing
-        #     element_list = [default] if default is not None else []
-
-        # # Otherwise, if alternatives are specified
-        # else:
-        #     # If alternatives is a Collection, extract its elements
-        #     if isinstance(alternatives, Collection):
-        #         alternatives = alternatives.elements
-
-        #     # If no default element is specified
-        #     if default is None:
-        #         # Take the first alternative as default
-        #         default, *alternatives = alternatives
-
-        #         # Raise warning to notify about the choice of default element
-        #         warnings.warn(
-        #             f"{stringify_iri(self._type)}: Using first element "
-        #             f"'{default}' as default."
-        #         )
-
-        #     # Build full elements list
-        #     element_list = [default] + alternatives
-
-        # # Format all elements as they would be in the graph
-        # element_list_formatted = [
-        #     self._format_object(element) for element in element_list
-        # ]
-
-        # # For every element of the list
-        # elements = []
-        # self._elements_formatted = []
-        # for i, (element, element_formatted) in enumerate(
-        #     zip(element_list, element_list_formatted)
-        # ):
-        #     # If element is default, or if its formatted form did not appear yet
-        #     if (
-        #         i < 1
-        #         or element_formatted not in element_list_formatted[: i - 1]
-        #     ):
-        #         # Add it and its formatted form to the lists
-        #         elements.append(element)
-        #         self._elements_formatted.append(element_formatted)
-
         super().__init__(
             graph,
             elements=elements,
@@ -199,27 +148,32 @@ class Alt(Container):
                 Alternative to add to Alt.
         """
 
-        try:
-            # Try to find element among Alt's elements
-            index = self._index(element)
-
-            # If success, raise a warning
-            if index == 0:
-                warnings.warn(
-                    f"{self}': Trying to set new alternative '{element}' "
-                    "to Alt, but it is already its default element. "
-                    "Not adding it again."
-                )
-            else:
-                warnings.warn(
-                    f"{self}': Trying to set new alternative '{element}' "
-                    "to Alt, but it is already in Alt. Not adding it again."
-                )
-
-        # Otherwise
-        except ValueError:
-            # Add element
+        # If duplicated elements are allowed, add element
+        if self._allow_duplicates:
             super()._append(element)
+
+        # Otherwise, try to find element among Alt's elements
+        else:
+            try:
+                index = self._index(element)
+
+                # If success, raise a warning
+                if index == 0:
+                    warnings.warn(
+                        f"{self}': Trying to set new alternative '{element}' "
+                        "to Alt, but it is already its default element. "
+                        "Not adding it again."
+                    )
+                else:
+                    warnings.warn(
+                        f"{self}': Trying to set new alternative '{element}' "
+                        "to Alt, but it is already in Alt. "
+                        "Not adding it again."
+                    )
+
+            # Otherwise, add element
+            except ValueError:
+                super()._append(element)
 
     def _build_elements(
         self, default: ObjectType, alternatives: list[ObjectType] | Collection
@@ -245,6 +199,10 @@ class Alt(Container):
             # Alt's element list consists of default element (if specified)
             # otherwise empty list
             return [default] if default is not None else []
+
+        # If alternatives is a Collection object
+        elif isinstance(alternatives, Collection):
+            alternatives = alternatives.elements
 
         # If no default element is specified
         if default is None:
@@ -316,17 +274,15 @@ class Alt(Container):
     def copy(self) -> "Alt":
         """Return a shallow copy of Alt."""
 
+        kwargs = {
+            "allow_duplicates": self._allow_duplicates,
+            "check_triples": self._check_triples,
+        }
         if self._elements:
-            return self.__class__(
-                self.graph,
-                default=self._elements[0],
-                alternatives=self._elements[1:],
-                check_triples=self._check_triples,
-            )
-        return self.__class__(
-            self.graph,
-            check_triples=self._check_triples,
-        )
+            kwargs["default"] = self.default
+            kwargs["alternatives"] = self.alternatives
+
+        return self.__class__(self.graph, **kwargs)
 
     def count(self, element: ObjectType) -> int:
         """Count the number of times element appears in Alt.
@@ -339,14 +295,15 @@ class Alt(Container):
             int: Number of times element appears in Alt.
         """
 
-        warnings.warn(
-            f"{self}: Calling Alt's 'count()' method does not make sense, as "
-            "Alt does not allow duplicated values. Prefer using the 'in' "
-            "operator."
-        )
+        # If duplicates are not allowed, raise a warning
+        if not self._allow_duplicates:
+            warnings.warn(
+                f"{self}: Calling Alt's 'count()' method does not make sense, "
+                "as Alt does not allow duplicated values. "
+                "Prefer using the 'in' operator."
+            )
 
-        # Duplicated values are not allowed in Alt, value is 1 or 0
-        return int(element in self)
+        return super().count(element)
 
     def discard_element(self, element: ObjectType) -> None:
         """Remove element from Alt,
@@ -357,15 +314,13 @@ class Alt(Container):
                 Element to remove from Alt.
         """
 
-        # Check whether element to remove is Alt's default
-        element_formatted = self._format_object(element)
-        removing_default = element_formatted == self._elements_formatted[0]
-
+        # Remember default before discarding element
+        default_before = self.default
         # Discard element
         super().discard_element(element)
 
-        # If element to remove is Alt's default
-        if removing_default:
+        # If element to remove was Alt's default
+        if self.default != default_before:
             # Raise a warning
             warnings.warn(
                 f"{self}: Default element removed. New default set to "
@@ -381,15 +336,14 @@ class Alt(Container):
                 Element to remove from Alt.
         """
 
-        # Check whether element to remove is Alt's default
-        element_formatted = self._format_object(element)
-        removing_default = element_formatted == self._elements_formatted[0]
+        # Remember default before discarding element
+        default_before = self.default
 
         # Discard element
         super().remove_element(element)
 
         # If element to remove is Alt's default
-        if removing_default:
+        if self.default != default_before:
             # Raise a warning
             warnings.warn(
                 f"{self}: Default element removed. New default set to "

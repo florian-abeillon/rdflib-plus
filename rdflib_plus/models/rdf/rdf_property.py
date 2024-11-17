@@ -5,7 +5,7 @@ import warnings
 from typing import Optional, Union
 
 from inflection import camelize
-from rdflib import OWL, RDF, RDFS, Namespace
+from rdflib import OWL, RDF, RDFS, Graph, Namespace
 from rdflib import URIRef as IRI
 
 from rdflib_plus.config import (
@@ -20,7 +20,7 @@ from rdflib_plus.models.rdf.rdfs_resource import (
     Resource,
     ResourceOrIri,
 )
-from rdflib_plus.models.utils.types import ConstraintsType, GraphType, LangType
+from rdflib_plus.models.utils.types import ConstraintsType, LangType
 from rdflib_plus.namespaces import stringify_iri
 from rdflib_plus.utils import format_label
 
@@ -48,7 +48,7 @@ class Property(Class):
 
     def __init__(
         self,
-        graph: GraphType,
+        graph: Graph,
         label: str,
         namespace: Optional[Namespace] = None,
         local: bool = False,
@@ -62,7 +62,7 @@ class Property(Class):
         """Initialize Property.
 
         Args:
-            graph (Graph | MultiGraph):
+            graph (Graph):
                 Graph to search or create Property into.
             label (str):
                 Property's label.
@@ -159,7 +159,7 @@ class Property(Class):
 
     def _set_inverse_property(
         self,
-        graph: GraphType,
+        graph: Graph,
         label: str,
         namespace: Optional[Namespace] = None,
         super_property: Optional[SuperPropertyType] = None,
@@ -169,7 +169,7 @@ class Property(Class):
         """Set potential inverse property of Property.
 
         Args:
-            graph (Graph | MultiGraph):
+            graph (Graph):
                 Graph to search or create inverse Property into.
             label (str):
                 Inverse Property's label.

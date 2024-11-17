@@ -1,6 +1,6 @@
 """RDF Seq constructor"""
 
-from typing import Callable, Optional
+from typing import Callable, Iterable, Optional
 
 from rdflib import RDF
 
@@ -35,14 +35,14 @@ class Seq(Container):
         """
         return self._elements[index]
 
-    def __reversed__(self) -> "Seq":
-        """Reverse order of elements of Seq, and returns self.
+    def __reversed__(self) -> Iterable[ObjectType]:
+        """Returns elements of Seq in reverse order.
 
         Returns:
-            Seq: Reversed Seq.
+            Iterable[IRI | Literal | Any]: Iterable over elements of Seq
+                                           in reverse order .
         """
-        self.reverse()
-        return self
+        return iter(self.elements[::-1])
 
     def __setitem__(self, index: int, element: ObjectType) -> None:
         """Replace element of Seq at given index.
@@ -54,13 +54,13 @@ class Seq(Container):
                 New value of element.
         """
 
-        # Update value and its formatted form in elements lists
-        self._elements[index] = element
-        self._elements_formatted[index] = self._format_object(element)
-
         # Update value in graph
         predicate = self._get_predicate(index)
         self.replace(predicate, element)
+
+        # Update value and its formatted form in elements lists
+        self._elements[index] = element
+        self._elements_formatted[index] = self.get_value(predicate)
 
     def append(self, element: ObjectType) -> None:
         """Append element to the end of Seq.
@@ -125,7 +125,7 @@ class Seq(Container):
 
     def reverse(self) -> None:
         """Reverse order of elements of Seq."""
-        self.elements = reversed(self.elements)
+        self.elements = list(reversed(self.elements))
 
     def sort(
         self, key: Optional[Callable] = None, reverse: bool = False
@@ -139,4 +139,4 @@ class Seq(Container):
                 Whether to sort in reverse (ie. descending) order.
                 Defaults to False.
         """
-        self.elements = sorted(self._elements, key=key, reverse=reverse)
+        self.elements = list(sorted(self._elements, key=key, reverse=reverse))

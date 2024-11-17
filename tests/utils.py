@@ -3,10 +3,10 @@
 import itertools
 from typing import Any, Optional
 
-from rdflib import RDF, Literal, Namespace
+from rdflib import RDF, Graph, Literal, Namespace
 from rdflib import URIRef as IRI
 
-from rdflib_plus import MultiGraph, Resource, SimpleGraph
+from rdflib_plus import Alt, Bag, List, MultiGraph, Resource, Seq, SimpleGraph
 
 SEED = 1
 
@@ -74,7 +74,7 @@ def check_attributes(resource: Resource, **kwargs):
 
 
 def check_graph_triples(
-    graph: SimpleGraph | MultiGraph,
+    graph: Graph,
     triples: list[tuple[IRI, IRI, IRI]],
 ):
     """Check that graph is equivalent to the specified set of triples."""
@@ -94,24 +94,40 @@ def check_graph_triples(
 
 
 def check_graph_unordered_collection(
-    subject_iri: IRI,
-    graph: SimpleGraph | MultiGraph,
-    predicates: list[IRI],
+    collection: Alt | Bag,
     objects: list[IRI | Literal],
-    triples: Optional[list[tuple[IRI, IRI, IRI | Literal]]] = None,
-    exact: bool = True,
+    type_: Optional[IRI] = None,
+    default: Optional[IRI | Literal] = None,
+    graph_diff: Optional[SimpleGraph | MultiGraph] = None,
 ) -> None:
     """
-    Check if graph contains every predicate and every object, as well as every
-    triple (if any specified) -- and nothing else.
+    Check if graph contains every predicate and every object of collection,
+    as well as every triple (if any specified) -- and nothing else.
     """
 
-    # If no triples were specified, turn it into empty list
-    if triples is None:
-        triples = []
+    # Deep copy list, as their elements are going to be removed
+    objects = objects.copy()
+
+    # Initialize exact triples to look for in the graph
+    triples = []
+    if type_ is not None:
+        triples.append((collection.iri, RDF.type, type_))
+    if default is not None:
+        triples.append((collection.iri, RDF["_1"], default))
+
+    # Prepare predicates
+    shift = 0 if default is None else 1
+    predicates = [RDF[f"_{i + 1}"] for i in range(shift, shift + len(objects))]
+
+    # Get graph, in particular get the difference with other graph
+    # (if any specified)
+    graph = collection.graph
+    if graph_diff is not None:
+        graph -= graph_diff
 
     # For every triple in graph
     for triple in graph:
+
         # If triple was specified
         if triple in triples:
             # Remove it to make sure it only appears once,
@@ -123,7 +139,7 @@ def check_graph_unordered_collection(
         subject, predicate, object_ = triple
 
         # Make sure the subject is Collection
-        assert subject == subject_iri
+        assert subject == collection.iri
         # Remove predicate and object to make sure they only appear once in
         # the lists
         predicates.remove(predicate)
@@ -131,85 +147,43 @@ def check_graph_unordered_collection(
 
     # Make sure all the triples, predicates and objects specified were in graph
     assert not triples
-    if exact:
-        assert not predicates
-        assert not objects
+    assert not predicates
+    assert not objects
 
 
-def remove_rem_add_triples(
-    triples_rem: list[tuple[IRI, IRI, IRI | Literal]],
-    triples_add: list[tuple[IRI, IRI, IRI | Literal]],
-) -> tuple[
-    list[tuple[IRI, IRI, IRI | Literal]], list[tuple[IRI, IRI, IRI | Literal]]
-]:
-    """Remove triples that were both removed and added."""
-    return (
-        list(set(triples_rem).difference(triples_add)),
-        list(set(triples_add).difference(triples_rem)),
-    )
-
-
-def check_graph_diff_unordered_collection(
-    graph_before: SimpleGraph | MultiGraph,
-    graph_after: SimpleGraph | MultiGraph,
-    subject_iri: IRI,
-    predicates_rem: list[IRI],
-    predicates_add: list[IRI],
-    objects_rem: list[IRI | Literal],
-    objects_add: list[IRI | Literal],
-    triples_rem: Optional[list[tuple[IRI, IRI, IRI]]] = None,
-    triples_add: Optional[list[tuple[IRI, IRI, IRI]]] = None,
-):
+def check_graph_alt(
+    alt: Alt,
+    objects: list[IRI | Literal],
+    default: Optional[IRI | Literal] = None,
+    graph_diff: Optional[SimpleGraph | MultiGraph] = None,
+) -> None:
     """
-    Check that the removed and additional predicates and objects are correct.
+    Check if graph contains every predicate and every object of Alt,
+    as well as every triple (if any specified) -- and nothing else.
     """
-
-    # If no triples were specified, turn it into empty list
-    if triples_rem is None:
-        triples_rem = []
-    if triples_add is None:
-        triples_add = []
-
-    # Remove triples that were both removed and added
-    triples_rem, triples_add = remove_rem_add_triples(triples_rem, triples_add)
-
-    # Check that the expected triples, predicates and objects (and only them)
-    # were indeed removed from the graph
     check_graph_unordered_collection(
-        subject_iri,
-        graph_before - graph_after,
-        predicates_rem,
-        objects_rem,
-        triples=triples_rem,
-        exact=False,
+        alt, objects, type_=RDF.Alt, default=default, graph_diff=graph_diff
     )
 
-    # Check that the expected triples, predicates and objects (and only them)
-    # were indeed added to the graph
-    check_graph_unordered_collection(
-        subject_iri,
-        graph_after - graph_before,
-        predicates_add,
-        objects_add,
-        triples=triples_add,
-        exact=False,
-    )
 
-    # Make sure the remaining predicates and objects (which have been removed
-    # then added back) are the same
-    assert set(predicates_rem) == set(predicates_add) and len(
-        predicates_rem
-    ) == len(predicates_add)
-    assert set(objects_rem) == set(objects_add) and len(objects_rem) == len(
-        objects_add
+def check_graph_bag(
+    bag: Bag,
+    objects: list[IRI | Literal],
+    graph_diff: Optional[SimpleGraph | MultiGraph] = None,
+) -> None:
+    """
+    Check if graph contains every predicate and every object of Bag,
+    as well as every triple (if any specified) -- and nothing else.
+    """
+    check_graph_unordered_collection(
+        bag, objects, type_=RDF.Bag, graph_diff=graph_diff
     )
 
 
 def check_graph_list(
-    list_iri: IRI,
-    element_list: list[Any],
-    graph: SimpleGraph | MultiGraph,
-    triples: Optional[list[tuple[IRI, IRI, IRI | Literal]]] = None,
+    list_: List,
+    objects: list[IRI | Literal],
+    graph_diff: Optional[SimpleGraph | MultiGraph] = None,
     is_new_list: bool = True,
 ) -> None:
     """
@@ -217,51 +191,162 @@ def check_graph_list(
     triple (if any specified) -- and nothing else.
     """
 
-    # If no triples were specified, initialize it as empty list
-    if triples is None:
-        triples = []
+    # Get graph, in particular get the difference with other graph
+    # (if any specified)
+    graph = list_.graph
+    if graph_diff is not None:
+        graph -= graph_diff
 
-    # If element list is not empty
-    if element_list:
+    # Initialize first subject, and triples list
+    subject = list_.iri
+
+    # If objects were specified
+    triples = []
+    if objects:
 
         # For every element in the list
-        for i, element in enumerate(element_list):
+        for i, object_ in enumerate(objects):
 
-            # If sublist, or if explicitly required
+            # If sublist or if required, add type triple
             if i > 0 or is_new_list:
-                # Add type triple
-                triples.append((list_iri, RDF.type, RDF.List))
+                triples.append((subject, RDF.type, RDF.List))
 
             # Get sublist or RDF.nil, and add the related triples
-            object_ = graph.value(list_iri, RDF.rest)
+            rest = graph.value(subject, RDF.rest)
             triples.extend(
                 [
-                    (list_iri, RDF.first, element),
-                    (list_iri, RDF.rest, object_),
+                    (subject, RDF.first, object_),
+                    (subject, RDF.rest, rest),
                 ]
             )
 
             # Use object_ as subject
-            list_iri = object_
+            subject = rest
 
-    # Otherwise, if list just got initialized, add its type triple
+        # Check that last rest is RDF.nil
+        assert rest == RDF.nil
+
+    # Otherwise and if required, add type triple
     elif is_new_list:
-        triples.append((list_iri, RDF.type, RDF.List))
+        triples.append((subject, RDF.type, RDF.List))
 
     # Check graph triples
     check_graph_triples(graph, triples)
 
 
-def check_rem_add(
-    graph_before: SimpleGraph | MultiGraph,
-    graph_after: SimpleGraph | MultiGraph,
+def check_graph_seq(
+    seq: Seq,
+    objects: list[IRI | Literal],
+    type_: Optional[IRI] = None,
+    graph_diff: Optional[SimpleGraph | MultiGraph] = None,
+) -> None:
+    """
+    Check if graph contains a seq containing every object, as well as every
+    triple (if any specified) -- and nothing else.
+    """
+
+    # Prepare the triples to look for in the graph
+    triples = [
+        (seq.iri, RDF[f"_{i + 1}"], object_)
+        for i, object_ in enumerate(objects)
+    ]
+
+    # Add the type triple
+    triples.append((seq.iri, RDF.type, type_))
+
+    # Get graph, in particular get the difference with other graph
+    # (if any specified)
+    graph = seq.graph
+    if graph_diff is not None:
+        graph -= graph_diff
+
+    # Check graph triples
+    check_graph_triples(graph, triples)
+
+
+def check_graph(
+    collection: Alt | Bag | List | Seq, objects: list[IRI | Literal], **kwargs
+) -> None:
+    """
+    Check if graph contains a Collection containing every object,
+    as well as every triple (if any specified) -- and nothing else.
+    """
+
+    # If collection is an Alt
+    if isinstance(collection, Alt):
+        check_graph_alt(collection, objects, **kwargs)
+
+    # Otherwise, if collection is a Bag
+    elif isinstance(collection, Bag):
+        check_graph_bag(collection, objects, **kwargs)
+
+    # Otherwise, if collection is a List
+    elif isinstance(collection, List):
+        check_graph_list(collection, objects, **kwargs)
+
+    # Otherwise, if collection is a Seq
+    elif isinstance(collection, Seq):
+        check_graph_seq(collection, objects, **kwargs)
+
+    # Otherwise, raise error
+    else:
+        raise TypeError
+
+
+def check_elements_unordered_collection(
+    collection: Alt | Bag, elements: list[IRI | Literal]
+) -> None:
+    """Check that collection contains every element -- and nothing else."""
+    assert len(collection) == len(elements)
+    assert all(el in collection for el in elements)
+
+
+def check_elements_ordered_collection(
+    collection: List | Seq, elements: list[IRI | Literal]
+) -> None:
+    """Check that collection element list is equal to elements."""
+    assert len(collection) == len(elements)
+    assert all(
+        element == list_element
+        for element, list_element in zip(elements, collection)
+    )
+
+
+def check_elements(
+    collection: Alt | Bag | List | Seq,
+    elements: list[IRI | Literal],
+) -> None:
+    """
+    Check that collection appropriately contains the elements
+    -- and nothing else.
+    """
+
+    # If collection is unordered
+    if isinstance(collection, (Alt, Bag)):
+        check_elements_unordered_collection(collection, elements)
+
+    # Otherwise, if collection is ordered
+    elif isinstance(collection, (List, Seq)):
+        check_elements_ordered_collection(collection, elements)
+
+    # Otherwise, raise error
+    else:
+        raise TypeError
+
+
+def check_graph_diff(
+    graph_before: Graph,
+    graph_after: Graph,
     triples_rem: list[tuple[IRI, IRI, IRI]],
     triples_add: list[tuple[IRI, IRI, IRI]],
 ):
     """Check that the removed and additional triples are correct."""
 
     # Remove triples that were both removed and added
-    triples_rem, triples_add = remove_rem_add_triples(triples_rem, triples_add)
+    triples_rem, triples_add = (
+        list(set(triples_rem).difference(triples_add)),
+        list(set(triples_add).difference(triples_rem)),
+    )
 
     # Check that the removed triples are correct
     check_graph_triples(graph_before - graph_after, triples_rem)
@@ -293,4 +378,22 @@ def get_label(
     else:
         sep = "#"
 
-    return (label, legal_label, sep)
+    return label, legal_label, sep
+
+
+def remove_duplicated_elements(
+    elements: list[IRI | Literal | Any],
+    elements_check: list[IRI | Literal],
+) -> tuple[list[IRI | Literal | Any], list[IRI | Literal]]:
+    """Remove duplicated elements from list, using their formatted form."""
+
+    element_set, element_set_check = [], []
+
+    for i, (element, element_check) in enumerate(
+        zip(elements, elements_check)
+    ):
+        if element_check not in elements_check[:i]:
+            element_set.append(element)
+            element_set_check.append(element_check)
+
+    return element_set, element_set_check
