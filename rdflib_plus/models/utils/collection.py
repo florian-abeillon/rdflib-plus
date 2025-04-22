@@ -5,8 +5,9 @@ from typing import Iterable, Optional, Union
 from rdflib import Graph, Namespace
 from rdflib import URIRef as IRI
 
-from rdflib_plus.config import DEFAULT_CHECK_TRIPLES
+from rdflib_plus.config import DEFAULT_CHECK_TRIPLES, SEPARATOR, THRESHOLD_STR
 from rdflib_plus.models.rdf.rdfs_resource import ObjectType, Resource
+from rdflib_plus.models.utils.utils import format_index, trim_str_list
 
 
 class Collection(Resource):
@@ -174,9 +175,27 @@ class Collection(Resource):
     def __str__(self) -> str:
         """Human-readable string representation of Collection"""
 
+        # Get type of Collection, and its elements' string representation
         type_ = self.__class__.__name__
-        elements = [str(element) for element in self._elements]
-        return f"{type_}({', '.join(elements)})"
+        elements = list(map(str, self._elements))
+
+        # Build list of elements' string representations
+        str_elements = SEPARATOR.join(elements)
+
+        # It this list is too long
+        if len(str_elements) > THRESHOLD_STR:
+
+            # Trim the first and last elements
+            first_elements = trim_str_list(elements)
+            last_elements = trim_str_list(elements[::-1])
+
+            # Join them with an ellipsis in between
+            str_elements = SEPARATOR.join(
+                first_elements + ["... "] + last_elements[::-1]
+            )
+
+        # Build Collection's string representation
+        return f"{type_}({str_elements})"
 
     def _append(self, element: ObjectType) -> None:
         """Append element to the end of Collection."""
@@ -197,40 +216,49 @@ class Collection(Resource):
         for new_element in new_elements:
             self._append(new_element)
 
-    def _format_index(self, index: int, in_range: bool = True) -> int:
-        """Turn negative indices into "real" (positive) index.
+    # TODO: Un-protect method to use in decorator?
+    # def _format_index(self, index: int, inserting: bool = False) -> int:
+    #     """Turn negative indices into "real" (positive) index.
 
-        Args:
-            index (int):
-                Index to format.
-            in_range (bool, optional):
-                Whether to check that index is indeed in Collection's range.
-                Defaults to True.
+    #     Args:
+    #         index (int):
+    #             Index to format.
+    #         inserting (bool, optional):
+    #             Whether the index is used in insert() method.
+    #             Defaults to False.
 
-        Returns:
-            int: Formatted index (integer between 0 and
-                 the number of elements).
-        """
+    #     Returns:
+    #         int: Formatted index (integer between 0 and
+    #              the number of elements).
+    #     """
 
-        # If index is not valid given the length of element list,
-        # raise an error
-        if len(self) and in_range and not -len(self) <= index < len(self):
-            raise IndexError(
-                f"Index '{index}' is not valid with object of length "
-                f"{len(self)}."
-            )
+    #     # If the index is used in insert() method
+    #     if inserting:
 
-        # If index is negative
-        if index < 0:
-            # Turn it into "real" positive index
-            index += len(self)
+    #         # Restrain index if its too big or too small
+    #         if index > len(self) - 1:
+    #             index = len(self)
+    #         elif index <= -len(self):
+    #             index = 0
 
-        return index
+    #     # Otherwise, if index is not valid given the length of element list,
+    #     # raise an error
+    #     elif self and not -len(self) <= index < len(self):
+    #         raise IndexError(
+    #             f"Index '{index}' is not valid with object of length "
+    #             f"{len(self)}."
+    #         )
+
+    #     # If index is negative, turn it into a "real", positive index
+    #     if index < 0:
+    #         index += len(self)
+
+    #     return index
 
     def _index(
         self, element: ObjectType, start: int = 0, end: int = -1
     ) -> int:
-        """Get  index of element in Collection.
+        """Get index of first instance of element (if any) in Collection.
 
         Args:
             element (Resource | IRI | Literal | Any):
@@ -250,8 +278,8 @@ class Collection(Resource):
         element_formatted = self._format_object(element)
 
         # Format end index
-        start = self._format_index(start)
-        end = self._format_index(end)
+        start = format_index(start, len(self))
+        end = format_index(end, len(self))
 
         # Try to find element between start and end indices
         index = self._elements_formatted[start : end + 1].index(

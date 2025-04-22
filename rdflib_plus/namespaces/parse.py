@@ -50,6 +50,7 @@ def stringify_iri(iri: IRI | RdflibResource) -> str:
     # Stringify Resource (into its IRI) or IRI
     iri = str(iri)
 
+    # TODO: Use NamespaceManager.normalizeUri() ?
     # For every known namespace
     for namespace, prefix in NAMESPACE_TO_PREFIX.items():
         # Look for namespace in iri

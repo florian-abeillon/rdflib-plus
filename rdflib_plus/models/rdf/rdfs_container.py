@@ -6,11 +6,12 @@ from rdflib import URIRef as IRI
 from rdflib_plus.definitions import RDFS_CLASSES
 from rdflib_plus.models.rdf.rdfs_resource import ObjectType, ResourceOrIri
 from rdflib_plus.models.utils.collection import Collection
+from rdflib_plus.models.utils.decorators import formatted_index
 from rdflib_plus.models.utils.types import ConstraintsType
 
 
 class Container(Collection):
-    """RDFS Container constructor"""
+    """RDFS Container constructor."""
 
     # Container's RDF type
     _type: ResourceOrIri = RDFS.Container
@@ -32,12 +33,14 @@ class Container(Collection):
                 Element to append to Container.
         """
 
+        # Append element to the elements list
+        self._elements.append(element)
+
         # Set element's value in graph, with appropriate index
-        predicate = self._get_predicate(len(self))
+        predicate = self._get_predicate(len(self) - 1)
         self.set(predicate, element)
 
-        # Append element and its formatted form to the elements lists
-        self._elements.append(element)
+        # Append element's formatted form to the elements list
         self._elements_formatted.append(self.get_value(predicate))
 
     def _get_predicate(self, index: int) -> IRI:
@@ -50,15 +53,9 @@ class Container(Collection):
         Returns:
             IRI: Predicate linking Container to index-th element.
         """
+        return RDF[f"_{index + 1}"]
 
-        # Format index, and update it to start at 1 (not 0)
-        index = self._format_index(index, in_range=False)
-
-        # Build predicate
-        predicate = RDF[f"_{index + 1}"]
-
-        return predicate
-
+    @formatted_index(inserting=True)
     def _insert(self, index: int, new_element: ObjectType) -> None:
         """Insert element at index-th position of Container.
 
@@ -82,6 +79,7 @@ class Container(Collection):
         predicate = self._get_predicate(index)
         self._elements_formatted.insert(index, self.get_value(predicate))
 
+    @formatted_index()
     def _pop(self, index: int) -> ObjectType:
         """Delete and return element of Container at given index.
 
@@ -94,8 +92,7 @@ class Container(Collection):
             Resource | IRI | Literal | Any: Removed element.
         """
 
-        # For every element from index
-        index = self._format_index(index)
+        # For every element from index on
         for i, element in enumerate(self._elements[index + 1 :]):
             # Update value in graph
             predicate = self._get_predicate(index + i)

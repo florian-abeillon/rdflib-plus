@@ -34,3 +34,10 @@ ILLEGAL_CHARS_OFFICIAL: str = ":/?#[]@!$&'()*+,;="
 # Source: https://afs.github.io/rdf-iri-syntax.html#notes-iris
 ILLEGAL_CHARS_UNOFFICIAL: str = " {}<>"
 ILLEGAL_CHARS_IN_AUTHORITY_ONLY: str = "@():"
+
+# Maximum length of character in Collections' string representation
+THRESHOLD_STR: int = 60
+# Maximum length of character in Collections' trimmed string representation
+THRESHOLD_TRIMMED_STR: int = 30
+# Separator between elements in Collections' string representation
+SEPARATOR: str = ", "

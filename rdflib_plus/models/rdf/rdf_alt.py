@@ -45,6 +45,8 @@ class Alt(Container):
             ):
                 New alternatives to Alt.
         """
+        # Remember whether default was already set
+        self._was_default_set = self.default is not None
         self.elements = self._build_elements(self.default, new_alternatives)
 
     @default.setter
@@ -58,10 +60,19 @@ class Alt(Container):
 
         # If duplicated elements are not allowed
         if not self._allow_duplicates:
-            # Remove new default element from Alt, if it was already included
+
+            # If new default is the same as before, do not do anything
+            try:
+                _ = self._index(new_default, end=0)
+                return
+            except ValueError:
+                pass
+
+            # Otherwise, remove new default element from Alt
+            # if it was already included
             self.discard_element(new_default)
 
-        # Insert new default element
+        # Insert new default at the start of element list
         self._insert(0, new_default)
 
     def __init__(
@@ -114,6 +125,10 @@ class Alt(Container):
         # Remember whether to allow duplicated elements
         self._allow_duplicates = allow_duplicates
 
+        # TODO: Not very elegant
+        # Remember whether a default was specified
+        self._was_default_set = default is not None
+
         # If not elements are specified
         if elements is None:
             # Build element list from default and alternatives
@@ -157,6 +172,7 @@ class Alt(Container):
             try:
                 index = self._index(element)
 
+                # TODO: Test for warnings
                 # If success, raise a warning
                 if index == 0:
                     warnings.warn(
@@ -200,20 +216,14 @@ class Alt(Container):
             # otherwise empty list
             return [default] if default is not None else []
 
-        # If alternatives is a Collection object
-        elif isinstance(alternatives, Collection):
+        # Otherwise, if alternatives is a Collection object
+        if isinstance(alternatives, Collection):
             alternatives = alternatives.elements
 
         # If no default element is specified
         if default is None:
             # Take the first alternative as default
             default, *alternatives = alternatives
-
-            # Raise warning to notify about the choice of default element
-            warnings.warn(
-                f"{stringify_iri(self._type)}: Using first element "
-                f"'{default}' as default."
-            )
 
         # Build full elements list
         elements = [default] + alternatives
@@ -238,12 +248,14 @@ class Alt(Container):
         super()._extend(new_elements)
 
         # If Alt was empty, and was extended with new elements
-        if was_alt_empty and new_elements:
+        if not self._was_default_set and was_alt_empty and new_elements:
+            # TODO: Raises warning even if initializing element with default
             # Raise warning to notify about the choice of default element
             warnings.warn(
                 f"{stringify_iri(self._type)}: Using element "
                 f"'{self.default}' as default."
             )
+            self._was_default_set = False
 
     def add_alternative(self, element: ObjectType) -> None:
         """Add an alternative to Alt.
@@ -297,35 +309,14 @@ class Alt(Container):
 
         # If duplicates are not allowed, raise a warning
         if not self._allow_duplicates:
+            # TODO: Test for warning
             warnings.warn(
                 f"{self}: Calling Alt's 'count()' method does not make sense, "
                 "as Alt does not allow duplicated values. "
-                "Prefer using the 'in' operator."
+                "Prefer using the 'in' operator instead."
             )
 
         return super().count(element)
-
-    def discard_element(self, element: ObjectType) -> None:
-        """Remove element from Alt,
-           without raising error if it was not present.
-
-        Args:
-            element (Resource | IRI | Literal | Any):
-                Element to remove from Alt.
-        """
-
-        # Remember default before discarding element
-        default_before = self.default
-        # Discard element
-        super().discard_element(element)
-
-        # If element to remove was Alt's default
-        if self.default != default_before:
-            # Raise a warning
-            warnings.warn(
-                f"{self}: Default element removed. New default set to "
-                f"'{self.default}'."
-            )
 
     def remove_element(self, element: ObjectType) -> None:
         """Remove element from Alt,
@@ -344,6 +335,7 @@ class Alt(Container):
 
         # If element to remove is Alt's default
         if self.default != default_before:
+            # TODO: Test for warning
             # Raise a warning
             warnings.warn(
                 f"{self}: Default element removed. New default set to "

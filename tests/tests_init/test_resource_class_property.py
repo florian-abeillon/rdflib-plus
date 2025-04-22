@@ -1,9 +1,13 @@
 """Test Resource, Class and Property constructors"""
 
+import re
+from contextlib import nullcontext
+
 import pytest
 from rdflib import XSD, Literal
 from rdflib import URIRef as IRI
 
+from rdflib_plus import Resource
 from tests.parameters import (
     PARAMETERS_CLASS,
     PARAMETERS_LABELS,
@@ -11,7 +15,11 @@ from tests.parameters import (
     PARAMETERS_RESOURCE,
 )
 from tests.tests_init.utils import check_init_labeled_object
-from tests.utils import cartesian_product, get_label
+from tests.utils import (
+    WARNING_MESSAGE_FORMATTING,
+    cartesian_product,
+    get_label,
+)
 
 
 @pytest.mark.parametrize(
@@ -47,7 +55,7 @@ def test_init_with_type_in_iri(
     legal_label_pascal_case: str,
     type_in_iri: bool,
 ):
-    """Test Class creation with super-class."""
+    """Test Resource, Class and Property creation with super-class."""
 
     # Get appropriate label
     label_formatted, legal_label_formatted, sep = get_label(
@@ -62,23 +70,39 @@ def test_init_with_type_in_iri(
     )
 
     # Set kwargs to be used by constructor
-    kwargs = {"label": label_formatted, "type_in_iri": type_in_iri}
+    kwargs = {"label": label, "type_in_iri": type_in_iri}
 
-    # Format identifier and label
+    # Format identifier
     identifier = Literal(label_formatted, datatype=XSD.string)
-    label = Literal(label_formatted, datatype=XSD.string)
     legal_identifier = legal_label_formatted
 
-    # Test constructor
-    resource = check_init_labeled_object(
-        model,
-        model_name,
-        model_type,
-        properties,
-        identifier,
-        legal_identifier,
-        kwargs,
-        sep=sep,
-        label=label,
-        type_in_iri=type_in_iri,
-    )
+    # If label is not well-formatted, expect warning
+    with (
+        pytest.warns(UserWarning)
+        if model != Resource and label != label_formatted
+        else nullcontext()
+    ) as record:
+
+        # Format label
+        label = Literal(label, datatype=XSD.string)
+
+        # Test constructor
+        _ = check_init_labeled_object(
+            model,
+            model_name,
+            model_type,
+            properties,
+            identifier,
+            legal_identifier,
+            kwargs,
+            sep=sep,
+            label=label,
+            type_in_iri=type_in_iri,
+        )
+
+        # If expecting warnings
+        if record is not None:
+            assert len(record) == 1
+            assert WARNING_MESSAGE_FORMATTING.format(
+                label, label_formatted
+            ) in str(record[0].message)

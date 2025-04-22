@@ -1,6 +1,8 @@
 """Test Class constructor"""
 
 import random as rd
+import re
+from contextlib import nullcontext
 
 import pytest
 from rdflib import DCTERMS, RDF, RDFS, SKOS, XSD, Literal
@@ -12,7 +14,13 @@ from tests.parameters import (
     PARAMETERS_LABELS,
     PARAMETERS_PROPERTY,
 )
-from tests.utils import SEED, cartesian_product, check_graph_triples, get_label
+from tests.utils import (
+    SEED,
+    WARNING_MESSAGE_FORMATTING,
+    cartesian_product,
+    check_graph_triples,
+    get_label,
+)
 
 # Set random seed
 rd.seed(SEED)
@@ -58,19 +66,49 @@ def test_init_class_with_hierarchical_path_and_type_in_iri(
         "considered as the same object)."
     )
 
-    # Create super-class and class
-    super_class = Class(
-        graph,
-        label_super_class,
-        type_in_iri=type_in_iri,
-    )
-    class_ = Class(
-        graph,
-        label_class,
-        super_class=super_class,
-        hierarchical_path=hierarchical_path,
-        type_in_iri=type_in_iri,
-    )
+    # If label is not well-formatted, expect warning
+    with (
+        pytest.warns(UserWarning)
+        if label_super_class != label_camel_case_super_class
+        else nullcontext()
+    ) as record:
+
+        # Create super-class
+        super_class = Class(
+            graph,
+            label_super_class,
+            type_in_iri=type_in_iri,
+        )
+
+        # If expecting warnings
+        if record is not None:
+            assert len(record) == 1
+            assert WARNING_MESSAGE_FORMATTING.format(
+                label_super_class, label_camel_case_super_class
+            ) in str(record[0].message)
+
+    # If label is not well-formatted, expect warning
+    with (
+        pytest.warns(UserWarning)
+        if label_class != label_camel_case_class
+        else nullcontext()
+    ) as record:
+
+        # Create class
+        _ = Class(
+            graph,
+            label_class,
+            super_class=super_class,
+            hierarchical_path=hierarchical_path,
+            type_in_iri=type_in_iri,
+        )
+
+        # If expecting warnings
+        if record is not None:
+            assert len(record) == 1
+            assert WARNING_MESSAGE_FORMATTING.format(
+                label_class, label_camel_case_class
+            ) in str(record[0].message)
 
     # Check IRI
     iri = IRI("http://default.example.com/")
@@ -174,19 +212,49 @@ def test_init_property_with_hierarchical_path_and_type_in_iri(
         "considered as the same object)."
     )
 
-    # Create super-property and property
-    super_property = Property(
-        graph,
-        label_super_property,
-        type_in_iri=type_in_iri,
-    )
-    property = Property(
-        graph,
-        label_property,
-        super_property=super_property,
-        hierarchical_path=hierarchical_path,
-        type_in_iri=type_in_iri,
-    )
+    # If label is not well-formatted, expect warning
+    with (
+        pytest.warns(UserWarning)
+        if label_super_property != label_pascal_case_super_property
+        else nullcontext()
+    ) as record:
+
+        # Create super-property
+        super_property = Property(
+            graph,
+            label_super_property,
+            type_in_iri=type_in_iri,
+        )
+
+        # If expecting warnings
+        if record is not None:
+            assert len(record) == 1
+            assert WARNING_MESSAGE_FORMATTING.format(
+                label_super_property, label_pascal_case_super_property
+            ) in str(record[0].message)
+
+    # If label is not well-formatted, expect warning
+    with (
+        pytest.warns(UserWarning)
+        if label_property != label_pascal_case_property
+        else nullcontext()
+    ) as record:
+
+        # Create property
+        _ = Property(
+            graph,
+            label_property,
+            super_property=super_property,
+            hierarchical_path=hierarchical_path,
+            type_in_iri=type_in_iri,
+        )
+
+        # If expecting warnings
+        if record is not None:
+            assert len(record) == 1
+            assert WARNING_MESSAGE_FORMATTING.format(
+                label_property, label_pascal_case_property
+            ) in str(record[0].message)
 
     # Check IRI
     iri = IRI("http://default.example.com/")
@@ -280,8 +348,6 @@ def test_init_class_property_with_type_in_iri(
         legal_label_pascal_case,
     ) = rd.choice(PARAMETERS_LABELS)
 
-    class_or_property = model(graph, label, type_in_iri=type_in_iri)
-
     # Get appropriate label
     label_formatted, legal_label_formatted, sep = get_label(
         camel_case,
@@ -293,6 +359,23 @@ def test_init_class_property_with_type_in_iri(
         label_pascal_case,
         legal_label_pascal_case,
     )
+
+    # If label is not well-formatted, expect warning
+    with (
+        pytest.warns(UserWarning)
+        if label != label_formatted
+        else nullcontext()
+    ) as record:
+
+        # Create Class or Property
+        _ = model(graph, label, type_in_iri=type_in_iri)
+
+        # If expecting warnings
+        if record is not None:
+            assert len(record) == 1
+            assert WARNING_MESSAGE_FORMATTING.format(
+                label, label_formatted
+            ) in str(record[0].message)
 
     # Check IRI
     iri = IRI("http://default.example.com/")

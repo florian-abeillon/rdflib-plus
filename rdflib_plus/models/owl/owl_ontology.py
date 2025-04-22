@@ -90,7 +90,7 @@ class Ontology(Resource):
         ):
             # Raise a warning
             warnings.warn(
-                f"{self}': Version number '{version}' is not in the "
+                f"'{self}': Version number '{version}' is not in the "
                 "appropriate format. Setting it anyway."
             )
 

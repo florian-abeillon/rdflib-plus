@@ -125,3 +125,21 @@ PARAMETERS_PROPERTIES_ONTOLOGY = {
     RDFS.label,
     *PARAMETERS_PROPERTIES_RESOURCE,
 }
+
+PARAMETERS_PROPERTIES_TO_STRING_REPRESENTATION = {
+    DCTERMS.identifier: "dcterms:identifier",
+    DCTERMS.source: "dcterms:source",
+    OWL.imports: "owl:imports",
+    OWL.priorVersion: "owl:priorVersion",
+    OWL.versionInfo: "owl:versionInfo",
+    RDF.first: "rdf:first",
+    RDF.rest: "rdf:rest",
+    RDF.type: "rdf:type",
+    RDFS.comment: "rdfs:comment",
+    RDFS.label: "rdfs:label",
+    RDFS.member: "rdfs:member",
+    RDFS.subClassOf: "rdfs:subClassOf",
+    RDFS.subPropertyOf: "rdfs:subPropertyOf",
+    SKOS.altLabel: "skos:altLabel",
+    SKOS.prefLabel: "skos:prefLabel",
+}

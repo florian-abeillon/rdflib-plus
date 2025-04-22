@@ -2,8 +2,10 @@
 
 import copy
 import random as rd
+from contextlib import nullcontext
 from typing import Any, Callable, Optional
 
+import pytest
 from rdflib import RDF, Graph, Literal
 from rdflib import URIRef as IRI
 
@@ -36,8 +38,14 @@ def build_collection(
     if graph is None:
         graph = SimpleGraph()
 
-    # Create object
-    collection = type_(graph, elements=elements, **kwargs)
+    # If type_ is Alt and list of elements is not empty, expect warning
+    with (
+        pytest.warns(UserWarning)
+        if type_ == Alt and elements
+        else nullcontext()
+    ):
+        # Create object
+        collection = type_(graph, elements=elements, **kwargs)
 
     return collection, elements, elements_check
 
@@ -200,6 +208,17 @@ def get_default_alternatives(
     return default, alternatives
 
 
+def check_exact_match(
+    first_element: IRI | Literal | Any, second_element: IRI | Literal | Any
+) -> bool:
+    """Check whether two elements are exactly the same."""
+    return (
+        first_element == second_element
+        and isinstance(first_element, type(second_element))
+        and isinstance(second_element, type(first_element))
+    )
+
+
 def count_exact_match(
     element: IRI | Literal | Any, elements: list[IRI | Literal | Any]
 ) -> int:
@@ -207,14 +226,7 @@ def count_exact_match(
     Count the number of times element appear in a list, using exact matching
     (eg. 0 != 0.0 != False).
     """
-    return sum(
-        (
-            element == el
-            and isinstance(element, type(el))
-            and isinstance(el, type(element))
-        )
-        for el in elements
-    )
+    return sum(check_exact_match(element, el) for el in elements)
 
 
 def index_exact_match(
@@ -239,11 +251,7 @@ def index_exact_match(
     for i, el in enumerate(elements[start : end + 1]):
 
         # If it matches element exactly, return the corresponding index
-        if (
-            element == el
-            and isinstance(element, type(el))
-            and isinstance(el, type(element))
-        ):
+        if check_exact_match(element, el):
             return i + start
 
     # If not found, return None

@@ -2,6 +2,8 @@
 
 import copy
 import random as rd
+import re
+from contextlib import nullcontext
 from typing import Any, Optional
 
 import pytest
@@ -15,12 +17,22 @@ from tests.parameters import (
     PARAMETERS_MODELS_COLLECTIONS,
     PARAMETERS_PROPERTIES_CONTAINER,
 )
-from tests.tests_methods.utils import build_collection, index_exact_match
+from tests.tests_methods.utils import (
+    build_collection,
+    count_exact_match,
+    index_exact_match,
+)
 from tests.utils import (
     SEED,
+    WARNING_MESSAGE_ALT_COUNT,
+    WARNING_MESSAGE_DEFAULT,
+    WARNING_MESSAGE_DEFAULT_REMOVED,
+    WARNING_MESSAGE_DUPLICATES,
     cartesian_product,
+    check_elements,
     check_elements_unordered_collection,
     check_graph_alt,
+    check_graph_collection,
     remove_duplicated_elements,
 )
 
@@ -46,10 +58,39 @@ def test_elements(
 
     # If a model is specified, create instance to initialize Alt with
     if model is not None:
-        elements = model(SimpleGraph(), elements=elements)
+        # If model is Alt and list of elements is not empty, expect warning
+        with (
+            pytest.warns(UserWarning)
+            if model == Alt and elements
+            else nullcontext()
+        ):
+            elements = model(SimpleGraph(), elements=elements)
 
-    # Set elements property
-    alt.elements = elements
+    # If list of elements is not empty, expect warning
+    with pytest.warns(UserWarning) if elements else nullcontext() as record:
+
+        # Set elements property
+        alt.elements = elements
+
+        # If expecting warnings
+        if record is not None:
+
+            # Check default warning
+            *record, default_warning = record
+            assert re.search(
+                WARNING_MESSAGE_DEFAULT, str(default_warning.message)
+            )
+
+            # If list of elements contains duplicates
+            nb_duplicates = len(elements_check) - len(set(elements_check))
+            if nb_duplicates > 0:
+
+                # Check that one warning is raised for each duplicate
+                assert len(record) == nb_duplicates
+                for r in record:
+                    assert re.search(
+                        WARNING_MESSAGE_DUPLICATES, str(r.message)
+                    )
 
     # Remove them from the list
     elements, elements_check = remove_duplicated_elements(
@@ -84,12 +125,18 @@ def test_alternatives(
         Alt, allow_duplicates=allow_duplicates
     )
 
+    # Remember whether Alt is empty
+    was_alt_empty = not bool(elements)
+
     # If a model is specified, create instance to initialize Alt with
     if model is not None:
-        alternatives = model(SimpleGraph(), elements=alternatives)
-
-    # Set elements property
-    alt.alternatives = alternatives
+        # If model is Alt and list of elements is not empty, expect warning
+        with (
+            pytest.warns(UserWarning)
+            if model == Alt and alternatives
+            else nullcontext()
+        ):
+            alternatives = model(SimpleGraph(), elements=alternatives)
 
     # Keep the first element (if any), and add the alternatives to make
     # the new element list
@@ -98,6 +145,34 @@ def test_alternatives(
         elements_check = [elements_check[0]]
     elements += alternatives
     elements_check += alternatives_check
+
+    # If alternatives contains unallowed duplicates, expect warning
+    nb_duplicates = len(elements_check) - len(set(elements_check))
+    with (
+        pytest.warns(UserWarning)
+        if (was_alt_empty and alternatives)
+        or (not allow_duplicates and nb_duplicates > 0)
+        else nullcontext()
+    ) as record:
+
+        # Set elements property
+        alt.alternatives = alternatives
+
+        # If no default element is specified
+        if was_alt_empty and alternatives:
+            # Check default warning
+            *record, default_warning = record
+            assert re.search(
+                WARNING_MESSAGE_DEFAULT, str(default_warning.message)
+            )
+
+        # If list of elements contains duplicates
+        if not allow_duplicates and nb_duplicates > 0:
+
+            # Check that one warning is raised for each duplicate
+            assert len(record) == nb_duplicates
+            for r in record:
+                assert re.search(WARNING_MESSAGE_DUPLICATES, str(r.message))
 
     # If duplicates are not allowed, remove any from the element list
     if not allow_duplicates:
@@ -147,7 +222,6 @@ def test_default(
 
     # Check that the default and elements properties were updated correctly
     assert alt.default == default
-    assert alt.elements[0] == default
 
     # Check that Alt contains exactly all the elements
     check_elements_unordered_collection(alt, [default] + elements)
@@ -172,8 +246,23 @@ def test_add_alternative(
         Alt, allow_duplicates=allow_duplicates
     )
 
-    # Add alternative
-    alt.add_alternative(element)
+    # If duplicates are not allowed and list of elements contains
+    # element, expect warning
+    with (
+        pytest.warns(UserWarning)
+        if not allow_duplicates and element_check in elements_check
+        else nullcontext()
+    ) as record:
+
+        # Add alternative
+        alt.add_alternative(element)
+
+        # If expecting warnings
+        if record is not None:
+            assert len(record) == 1
+            assert re.search(
+                WARNING_MESSAGE_DUPLICATES, str(record[0].message)
+            )
 
     # If duplicates are not allowed, remove them from the list
     if not allow_duplicates:
@@ -202,11 +291,17 @@ def test_any_alternative(
 ):
     """Test Alt's any_alternative() method."""
 
-    # Initialize Alt
-    alt = Alt(SimpleGraph(), elements=elements)
+    # If list of elements is not empty, expect warning
+    with (
+        pytest.warns(UserWarning, match=WARNING_MESSAGE_DEFAULT)
+        if elements
+        else nullcontext()
+    ):
+        # Initialize Alt
+        alt = Alt(SimpleGraph(), elements=elements)
 
-    # If no alternatives were specified, make sure that None is returned every
-    # time
+    # If no alternatives were specified,
+    # make sure that None is returned every time
     if len(elements) < 2:
         for _ in range(10):
             assert alt.any_alternative() is None
@@ -224,8 +319,14 @@ def test_copy(
 ):
     """Test Alt's copy() method."""
 
-    # Create Alt
-    alt = Alt(SimpleGraph(), elements=elements)
+    # If list of elements is not empty, expect warning
+    with (
+        pytest.warns(UserWarning, match=WARNING_MESSAGE_DEFAULT)
+        if elements
+        else nullcontext()
+    ):
+        # Create Alt
+        alt = Alt(SimpleGraph(), elements=elements)
 
     # Freeze the state of the graph before calling the method
     graph_before = copy.deepcopy(alt.graph)
@@ -252,5 +353,186 @@ def test_copy(
     check_graph_alt(alt_new, elements_check, graph_diff=graph_before)
 
 
-# TODO: Write test for warning raised by count(), discard_element() and
-#       remove_element()
+@pytest.mark.parametrize(
+    "elements_add, elements_add_check, allow_duplicates",
+    cartesian_product(PARAMETERS_ELEMENT_LISTS, [True, False]),
+)
+def test_count(
+    elements_add: list[IRI | Literal | Any],
+    elements_add_check: list[IRI | Literal],
+    allow_duplicates: bool,
+):
+    """Test Alt's count() method."""
+
+    # Initialize Alt
+    alt, elements, elements_check = build_collection(
+        Alt, allow_duplicates=allow_duplicates
+    )
+
+    # Create an extended list from the original and another one
+    elements_with_check_extended = list(
+        zip(
+            elements + elements_add,
+            elements_check + elements_add_check,
+        )
+    )
+
+    # If duplicates are not allowed, remove any from the element list
+    if not allow_duplicates:
+        elements, elements_check = remove_duplicated_elements(
+            elements, elements_check
+        )
+
+    # Shuffle extended list
+    rd.shuffle(elements_with_check_extended)
+
+    # If duplicates are not allowed, expect warning
+    with (
+        pytest.warns(UserWarning, match=re.escape(WARNING_MESSAGE_ALT_COUNT))
+        if not allow_duplicates
+        else nullcontext()
+    ) as record:
+
+        # For every element of the extended list
+        for element, element_check in elements_with_check_extended:
+
+            # Check that the number of time it appears in the original list is
+            # returned
+            assert alt.count(element) == count_exact_match(
+                element_check, elements_check
+            )
+
+        # If expecting warnings, check them
+        if record is not None:
+            assert len(record) == len(elements_with_check_extended)
+
+
+@pytest.mark.parametrize(
+    "elements_add, elements_add_check", PARAMETERS_ELEMENT_LISTS
+)
+def test_discard_element(
+    elements_add: list[IRI | Literal | Any],
+    elements_add_check: list[IRI | Literal],
+):
+    """Test Alt's discard_element() method."""
+
+    # Create Alt
+    alt, elements, elements_check = build_collection(Alt)
+
+    # Create an extended list from the original and another one, and shuffle it
+    elements_with_check_extended = list(
+        zip(
+            elements + elements_add,
+            elements_check + elements_add_check,
+        )
+    )
+    rd.shuffle(elements_with_check_extended)
+
+    # Always expect warning (as all elements of Alt will be discarded,
+    # default must be removed at least once)
+    with pytest.warns(UserWarning) if elements else nullcontext() as record:
+
+        # Keep track of the series of Alt's default
+        default = alt.default
+        defaults = []
+
+        # For every element of the extended list
+        for element, element_check in elements_with_check_extended:
+
+            # Discard element from object
+            alt.discard_element(element)
+
+            # If default changed, remember it
+            if alt.default != default:
+                defaults.append(alt.default)
+                default = alt.default
+
+            # Find the index of element in list, if it contains it
+            # Only consider exact matches (eg. 0 != 0.0 != False)
+            index = index_exact_match(element_check, elements_check)
+
+            # If element is in Alt, remove it from the list
+            if index is not None:
+                del elements[index]
+                del elements_check[index]
+
+            # Check that Alt contains exactly all the elements
+            check_elements(alt, elements)
+
+            # Check that the graph is correct after calling the method
+            check_graph_alt(alt, elements_check)
+
+        # If expecting warnings, check them
+        if record is not None:
+            assert len(record) > 0
+            for r, default in zip(record, defaults):
+                assert WARNING_MESSAGE_DEFAULT_REMOVED.format(default) in str(
+                    r.message
+                )
+
+
+@pytest.mark.parametrize(
+    "elements_add, elements_add_check", PARAMETERS_ELEMENT_LISTS
+)
+def test_remove_element(
+    elements_add: list[IRI | Literal | Any],
+    elements_add_check: list[IRI | Literal],
+):
+    """Test Alt's remove_element() method."""
+
+    # Create Alt
+    alt, elements, elements_check = build_collection(Alt)
+
+    # Create an extended list from the original and another one, and shuffle it
+    elements_with_check_extended = list(
+        zip(
+            elements + elements_add,
+            elements_check + elements_add_check,
+        )
+    )
+    rd.shuffle(elements_with_check_extended)
+
+    # Always expect warning (as all elements of Alt will be discarded,
+    # default must be removed at least once)
+    with pytest.warns(UserWarning) if elements else nullcontext() as record:
+
+        # Keep track of the series of Alt's default
+        default = alt.default
+        defaults = []
+
+        # For every element of the extended list
+        for element, element_check in elements_with_check_extended:
+
+            # Find the index of element in list, if it contains it
+            # Only consider exact matches (eg. 0 != 0.0 != False)
+            index = index_exact_match(element_check, elements_check)
+
+            # Try to remove element from object
+            try:
+                alt.remove_element(element)
+                assert index is not None
+
+                # If default changed, remember it
+                if alt.default != default:
+                    defaults.append(alt.default)
+                    default = alt.default
+
+                # If element is in Alt, remove it from the list
+                del elements[index]
+                del elements_check[index]
+
+            except ValueError:
+                assert index is None
+
+            # Check that Alt contains exactly all the elements
+            check_elements(alt, elements)
+
+            # Check that the graph is correct after calling the method
+            check_graph_collection(alt, elements_check)
+
+        # If expecting warnings, check them
+        if record is not None:
+            for r, default in zip(record, defaults):
+                assert WARNING_MESSAGE_DEFAULT_REMOVED.format(default) in str(
+                    r.message
+                )

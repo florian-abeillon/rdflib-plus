@@ -1,17 +1,18 @@
-"""Test oredered collections' methods"""
+"""Test ordered collections' methods"""
 
-import copy
 import random as rd
-from typing import Any, Iterable, Optional
+from contextlib import nullcontext
+from typing import Any, Callable, Iterable, Optional
 
 import pytest
 from rdflib import Literal
 from rdflib import URIRef as IRI
 
-from rdflib_plus import SimpleGraph
+from rdflib_plus import Alt, SimpleGraph
 from tests.parameters import (
     PARAMETERS_ELEMENT_LISTS,
     PARAMETERS_ELEMENTS,
+    PARAMETERS_KEY_FUNCTIONS,
     PARAMETERS_MODELS_COLLECTIONS,
     PARAMETERS_MODELS_ORDERED_COLLECTIONS,
 )
@@ -20,7 +21,7 @@ from tests.utils import (
     SEED,
     cartesian_product,
     check_elements_ordered_collection,
-    check_graph,
+    check_graph_collection,
 )
 
 # Set random seed
@@ -63,7 +64,7 @@ def test_delitem(
         check_elements_ordered_collection(collection, elements)
 
         # Check that the graph is correct after calling the method
-        check_graph(collection, elements_check)
+        check_graph_collection(collection, elements_check)
 
 
 @pytest.mark.parametrize(
@@ -191,7 +192,7 @@ def test_setitem(
         check_elements_ordered_collection(collection, elements)
 
         # Check that the graph is correct after calling the method
-        check_graph(collection, elements_check)
+        check_graph_collection(collection, elements_check)
 
 
 @pytest.mark.parametrize(
@@ -219,7 +220,7 @@ def test_append(
     check_elements_ordered_collection(collection, elements)
 
     # Check that the graph is correct after calling the method
-    check_graph(collection, elements_check)
+    check_graph_collection(collection, elements_check)
 
 
 @pytest.mark.parametrize(
@@ -252,7 +253,16 @@ def test_extend(
     # If a model is specified, create instance to initialize ordered collection
     # with
     if model_elements_add is not None:
-        elements_add = model_elements_add(SimpleGraph(), elements=elements_add)
+
+        # If model is Alt and list of elements is not empty, expect warning
+        with (
+            pytest.warns(UserWarning)
+            if model_elements_add == Alt and elements_add
+            else nullcontext()
+        ):
+            elements_add = model_elements_add(
+                SimpleGraph(), elements=elements_add
+            )
 
     # Extend ordered collection
     collection.extend(elements_add)
@@ -265,7 +275,7 @@ def test_extend(
     check_elements_ordered_collection(collection, elements)
 
     # Check that the graph is correct after calling the method
-    check_graph(collection, elements_check)
+    check_graph_collection(collection, elements_check)
 
 
 @pytest.mark.parametrize(
@@ -395,6 +405,7 @@ def test_index_with_end(
                     assert True
 
 
+# TODO: Too long to run
 @pytest.mark.parametrize(
     "model, elements, elements_check",
     cartesian_product(
@@ -449,6 +460,7 @@ def test_index_with_start_and_end(
                         assert True
 
 
+# TODO: Doesn't pass
 @pytest.mark.parametrize(
     "model, elements_add, elements_add_check",
     cartesian_product(
@@ -481,55 +493,52 @@ def test_insert(
         elements.insert(i, element_add)
         elements_check.insert(i, element_add_check)
 
-        print()
-        print("i", i)
-        print("elements", elements)
-        print()
-        for t in collection.graph:
-            print(">>", t)
-        print()
         # Check that ordered collection contains exactly all the elements
         check_elements_ordered_collection(collection, elements)
 
         # Check that the graph is correct after calling the method
-        check_graph(collection, elements_check)
+        check_graph_collection(collection, elements_check)
 
         # Increment n
         n += 1
 
 
-# # # @pytest.mark.parametrize(
-# # #     "model, model_name, model_type, properties, element_list",
-# # #     cartesian_product(
-# # #         [PARAMETERS_LIST, PARAMETERS_SEQ], PARAMETERS_ELEMENT_LISTS
-# # #     ),
-# # # )
-# # # def test_pop(
-# # #     model: type,
-# # #     model_name: str,
-# # #     model_type: IRI,
-# # #     properties: set[IRI],
-# # #     element_list: list[IRI | Literal | Any],
-# # # ):
-# # #     """Test Seq and Seq's pop() method."""
+@pytest.mark.parametrize(
+    "model, elements, elements_check",
+    cartesian_product(
+        PARAMETERS_MODELS_ORDERED_COLLECTIONS, PARAMETERS_ELEMENT_LISTS
+    ),
+)
+def test_pop(
+    model: type,
+    elements: list[IRI | Literal | Any],
+    elements_check: list[IRI | Literal],
+):
+    """Test ordered collections' pop() method."""
 
-# # #     # Create Seq or Seq
-# # #     collection = build_collection(model, element_list=element_list)
+    # Create ordered collection
+    collection = model(SimpleGraph(), elements=elements)
 
-# # #     # For every element
-# # #     n = len(element_list)
-# # #     for i in range(n):
-# # #         # Get an index at random
-# # #         index = rd.randint(0, n - i - 1)
+    # For every element
+    n = len(elements)
+    for i in range(n):
 
-# # #         # Pop element corresponding at index
-# # #         element_collection = collection.pop(index)
+        # Get an index at random
+        index = rd.randint(-n + i, n - i - 1)
 
-# # #         # Check that the element popped is the correct one
-# # #         element = element_list.pop(index)
-# # #         assert element_collection == element
-# # #         # Check that the element was indeed popped
-# # #         assert collection.elements == element_list
+        # Pop element at corresponding index
+        element_popped = collection.pop(index)
+
+        # Check that the popped element is the correct one
+        element = elements.pop(index)
+        del elements_check[index]
+        assert element_popped == element
+
+        # Check that ordered collection contains exactly all the elements
+        check_elements_ordered_collection(collection, elements)
+
+        # Check that the graph is correct after calling the method
+        check_graph_collection(collection, elements_check)
 
 
 @pytest.mark.parametrize(
@@ -549,7 +558,7 @@ def test_reverse(
     collection = model(SimpleGraph(), elements=elements)
 
     # Reverse ordered collection
-    collection = collection.reverse()
+    collection.reverse()
 
     # Reverse element lists
     elements = list(reversed(elements))
@@ -559,37 +568,51 @@ def test_reverse(
     check_elements_ordered_collection(collection, elements)
 
     # Check that the graph is correct after calling the method
-    check_graph(collection, elements_check)
+    check_graph_collection(collection, elements_check)
 
 
-# # # @pytest.mark.parametrize(
-# # #     "model, model_name, model_type, properties, element_list, key_function, "
-# # #     "reverse",
-# # #     cartesian_product(
-# # #         [PARAMETERS_LIST, PARAMETERS_SEQ],
-# # #         PARAMETERS_ELEMENT_LISTS,
-# # #         [None] + PARAMETERS_KEY_FUNCTIONS,
-# # #         [True, False],
-# # #     ),
-# # # )
-# # # def test_sort(
-# # #     model: type,
-# # #     model_name: str,
-# # #     model_type: IRI,
-# # #     properties: set[IRI],
-# # #     element_list: list[IRI | Literal | Any],
-# # #     key_function: Optional[Callable],
-# # #     reverse: bool,
-# # # ):
-# # #     """Test Seq and Seq's sort() method."""
+# TODO: Does not pass if no key specified (bc of element types not comparable)
+@pytest.mark.parametrize(
+    "model, elements, elements_check, key_function, reverse",
+    cartesian_product(
+        PARAMETERS_MODELS_ORDERED_COLLECTIONS,
+        PARAMETERS_ELEMENT_LISTS,
+        PARAMETERS_KEY_FUNCTIONS,
+        [True, False],
+    ),
+)
+def test_sort(
+    model: type,
+    elements: list[IRI | Literal | Any],
+    elements_check: list[IRI | Literal],
+    key_function: Optional[Callable],
+    reverse: bool,
+):
+    """Test ordered collections' sort() method."""
 
-# # #     # Create Seq or Seq
-# # #     collection = build_collection(model, element_list=element_list)
+    # Create ordered collection
+    collection = model(SimpleGraph(), elements=elements)
 
-# # #     # Reverse object
-# # #     collection.sort(key=key_function, reverse=reverse)
+    # Sort ordered collection
+    collection.sort(key=key_function, reverse=reverse)
 
-# # #     # Check that elements were sorted
-# # #     assert collection.elements == sorted(
-# # #         element_list, key=key_function, reverse=reverse
-# # #     )
+    # If element lists are not empty
+    if elements:
+
+        # Necessary to have the same sorting behaviour
+        def key(x):
+            if key_function is None:
+                return x[0]
+            return key_function(x[0])
+
+        # Sort element lists
+        elements_with_check = sorted(
+            zip(elements, elements_check), key=key, reverse=reverse
+        )
+        elements, elements_check = tuple(zip(*elements_with_check))
+
+    # Check that ordered collection contains exactly all the elements
+    check_elements_ordered_collection(collection, elements)
+
+    # Check that the graph is correct after calling the method
+    check_graph_collection(collection, elements_check)

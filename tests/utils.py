@@ -8,7 +8,32 @@ from rdflib import URIRef as IRI
 
 from rdflib_plus import Alt, Bag, List, MultiGraph, Resource, Seq, SimpleGraph
 
+# Set random seed
 SEED = 1
+
+# Set warning messages
+WARNING_MESSAGE_ALT_COUNT = (
+    "Calling Alt's 'count()' method does not make sense, as Alt does not "
+    "allow duplicated values. Prefer using the 'in' operator instead."
+)
+WARNING_MESSAGE_DEFAULT = r"Using element '.+' as default\."
+WARNING_MESSAGE_DEFAULT_REMOVED = (
+    "Default element removed. New default set to '{}'."
+)
+
+WARNING_MESSAGE_DUPLICATES = (
+    r"Trying to set new alternative '.+' to Alt, but it is "
+    r"already (?:its default element|in Alt)\. "
+    r"Not adding it again\."
+)
+WARNING_MESSAGE_FORMATTING = "Formatting identifier '{}' into '{}'."
+WARNING_MESSAGE_SET_OVERWRITE = (
+    "Overwriting value of (unique) attribute with predicate '{}', "
+    "from '{}' to '{}' in graph '{}'."
+)
+WARNING_MESSAGE_VERSION = (
+    "Version number '{}' is not in the appropriate format. Setting it anyway."
+)
 
 
 def build_iri(
@@ -264,7 +289,7 @@ def check_graph_seq(
     check_graph_triples(graph, triples)
 
 
-def check_graph(
+def check_graph_collection(
     collection: Alt | Bag | List | Seq, objects: list[IRI | Literal], **kwargs
 ) -> None:
     """

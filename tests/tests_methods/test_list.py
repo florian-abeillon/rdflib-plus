@@ -1,1 +1,0 @@
-"""Test List's methods"""

@@ -46,7 +46,7 @@ def test_str(
 
     # Initialize graph, and create labeled_object
     graph = SimpleGraph()
-    labeled_object = model(graph, label_formatted)
+    labeled_object = model(graph, label=label_formatted)
 
     # Check the string representation of the labeled_object
     check_str(labeled_object, model_name, legal_label_formatted, sep=sep)

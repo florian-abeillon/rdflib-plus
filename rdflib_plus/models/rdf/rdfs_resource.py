@@ -4,6 +4,7 @@ import copy
 import re
 import warnings
 from typing import Any, Optional, Union
+from uuid import uuid4
 
 from langcodes import standardize_tag
 from langcodes.tag_parser import LanguageTagError
@@ -20,7 +21,7 @@ from rdflib import (
 )
 from rdflib import URIRef as IRI
 from rdflib.resource import Resource as RdflibResource
-from rdflib.term import _serial_number_generator
+from rdflib.term import _unique_id
 
 from rdflib_plus.config import (
     DEFAULT_CHECK_TRIPLES,
@@ -193,7 +194,7 @@ class Resource(RdflibResource):
         # create Resource as blank node
         elif identifier is None:
             # Generate arbitrary identifier
-            identifier = _serial_number_generator()()
+            identifier = _unique_id() + uuid4().hex
 
             # Specify it is a blank node
             bnode = True
@@ -243,6 +244,7 @@ class Resource(RdflibResource):
 
             # Otherwise
             else:
+                # TODO: Add test for warning
                 # Raise a warning
                 warnings.warn(
                     f"{stringify_iri(self._type)} '{identifier}': Namespace "
@@ -281,6 +283,7 @@ class Resource(RdflibResource):
         # TODO: Is this necessary?
         # type_ = self.__class__.__name__
         # return f"{type_}(iri={stringify_iri(self._identifier)})"
+        # TODO: Find a way to shorten with a prefix, defined as a global variable?
 
     def _build_iri(self, namespace: Namespace, local: bool) -> IRI:
         """Build Resource's IRI from its identifier.
@@ -463,6 +466,7 @@ class Resource(RdflibResource):
                         f"objects of type '{stringify_iri(self.type)}'."
                     )
 
+                # TODO: Add test for warning
                 # Otherwise if they are the same,
                 # raise a warning
                 warnings.warn(
@@ -495,6 +499,7 @@ class Resource(RdflibResource):
             # Get the first one by default
             identifier_property = self._identifier_property[0]
 
+            # TODO: Add test for warning
             # Raise a warning
             warnings.warn(
                 f"{stringify_iri(self._type)} '{identifier}': Identifier "
@@ -523,6 +528,7 @@ class Resource(RdflibResource):
 
             # If lang is not in the right format
             except LanguageTagError:
+                # TODO: Add test for warning
                 # Raise a warning
                 warnings.warn(
                     f"{stringify_iri(self._type)} '{self._id}': Language "
@@ -580,10 +586,11 @@ class Resource(RdflibResource):
             if label is not None:
                 # If label is an empty string
                 if label == "":
+                    # TODO: Add test for warning
                     # Raise warning
                     warnings.warn(
                         f"{self}: Trying to set label to empty string. "
-                        "Thus, no label set."
+                        "Thus, setting no label."
                     )
 
                 # Otherwise
@@ -686,6 +693,7 @@ class Resource(RdflibResource):
 
             # If o is an empty string, raise warning
             if o == "":
+                # TODO: Add test for warning
                 warnings.warn(
                     f"{self}: Empty string is used as object in triple."
                 )
@@ -747,6 +755,7 @@ class Resource(RdflibResource):
             # If there is a 'maxCount' constraint of 1 and the value is trying
             # to be added, raise a warning
             if self._constraints[p].get("maxCount") == 1:
+                # TODO: Add test for warning
                 warnings.warn(
                     f"{self}: Adding an object with the predicate "
                     f"'{stringify_iri(p)}' (with the add() method), "
@@ -780,6 +789,7 @@ class Resource(RdflibResource):
 
         # If altLabel to be added is already prefLabel, do nothing
         if check_triple and self.get_value(SKOS.prefLabel) == alt_label:
+            # TODO: Add test for warning
             warnings.warn(
                 f"{self}: SKOS.altLabel '{str(alt_label)}' is already the "
                 f"SKOS.prefLabel in graph '{graph.identifier}'. "
@@ -922,11 +932,13 @@ class Resource(RdflibResource):
         # If no triple matches, raise a warning
         if check_triple and (self._identifier, p, o) not in graph:
             if o is None:
+                # TODO: Add test for warning
                 warnings.warn(
                     f"{self}: Failed to remove triples with predicate "
                     f"'{p}' from graph '{graph.identifier}' as none exist."
                 )
             else:
+                # TODO: Add test for warning
                 warnings.warn(
                     f"{self}: Failed to remove triples with predicate "
                     f"'{p}' from graph '{graph.identifier}' and object "
@@ -1013,6 +1025,7 @@ class Resource(RdflibResource):
                 if value == o:
                     return
 
+                # TODO: Add test for warning
                 # Otherwise, raise warning
                 warnings.warn(
                     f"{self}: Overwriting value of (unique) attribute with "
@@ -1056,6 +1069,7 @@ class Resource(RdflibResource):
 
         # If pref_label was already added as a SKOS.altLabel
         if check_triple and pref_label in self.objects(SKOS.altLabel):
+            # TODO: Add test for warning
             warnings.warn(
                 f"{self}: SKOS.prefLabel '{str(pref_label)}' is already a "
                 f"SKOS.altLabel in graph '{graph.identifier}'. "

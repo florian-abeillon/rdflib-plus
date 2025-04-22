@@ -1,5 +1,7 @@
 """Test Alt constructor"""
 
+import re
+from contextlib import nullcontext
 from typing import Any
 
 import pytest
@@ -13,6 +15,8 @@ from tests.parameters import (
 )
 from tests.tests_init.utils import check_init_blank_node_object
 from tests.utils import (
+    WARNING_MESSAGE_DEFAULT,
+    WARNING_MESSAGE_DUPLICATES,
     cartesian_product,
     check_elements_unordered_collection,
     check_graph_alt,
@@ -67,12 +71,38 @@ def test_init_with_alternatives(
         "allow_duplicates": allow_duplicates,
     }
 
-    # Test constructor
-    alt = check_init_blank_node_object(
-        *PARAMETERS_ALT,
-        kwargs=kwargs,
-        check_triples=False,
-    )
+    # If list of elements is not empty, expect warning
+    with pytest.warns(UserWarning) if elements else nullcontext() as record:
+
+        # Test constructor
+        alt = check_init_blank_node_object(
+            *PARAMETERS_ALT,
+            kwargs=kwargs,
+            check_triples=False,
+        )
+
+        # If expecting warnings
+        if record is not None:
+
+            # Check default warning
+            *record, default_warning = record
+            assert re.search(
+                WARNING_MESSAGE_DEFAULT, str(default_warning.message)
+            )
+
+            # If duplicates are not allowed
+            if not allow_duplicates:
+
+                # If there are duplicates
+                nb_duplicates = len(elements_check) - len(set(elements_check))
+                if nb_duplicates > 0:
+
+                    # Check that one warning is raised for each duplicate
+                    assert len(record) == nb_duplicates
+                    for r in record:
+                        assert re.search(
+                            WARNING_MESSAGE_DUPLICATES, str(r.message)
+                        )
 
     # If duplicates are not allowed, remove them from the list
     if not allow_duplicates:
@@ -116,19 +146,44 @@ def test_init_with_default_and_alternatives(
         "allow_duplicates": allow_duplicates,
     }
 
-    # Test constructor
-    alt = check_init_blank_node_object(
-        *PARAMETERS_ALT,
-        kwargs=kwargs,
-        check_triples=False,
-    )
-
-    # Check that default property was initialized correctly
-    assert alt.default == default
-
     # Set up the list of elements
     elements = [default] + alternatives
     elements_check = [default_check] + alternatives_check
+
+    # If no default element is specified or list of elements contains
+    # unallowed duplicates, expect warning
+    nb_duplicates = len(elements_check) - len(set(elements_check))
+    with (
+        pytest.warns(UserWarning)
+        if default is None or (not allow_duplicates and nb_duplicates > 0)
+        else nullcontext()
+    ) as record:
+
+        # Test constructor
+        alt = check_init_blank_node_object(
+            *PARAMETERS_ALT,
+            kwargs=kwargs,
+            check_triples=False,
+        )
+
+        # If no default element is specified
+        if default is None:
+            # Check default warning
+            *record, default_warning = record
+            assert re.search(
+                WARNING_MESSAGE_DEFAULT, str(default_warning.message)
+            )
+
+        # If list of elements contains duplicates
+        if not allow_duplicates and nb_duplicates > 0:
+
+            # Check that one warning is raised for each duplicate
+            assert len(record) == nb_duplicates
+            for r in record:
+                assert re.search(WARNING_MESSAGE_DUPLICATES, str(r.message))
+
+    # Check that default property was initialized correctly
+    assert alt.default == default
 
     # If duplicates are not allowed, remove them from the list
     if not allow_duplicates:
@@ -160,12 +215,35 @@ def test_init_with_elements(
     # Set kwargs to be used by constructor
     kwargs = {"elements": elements, "allow_duplicates": allow_duplicates}
 
-    # Test constructor
-    alt = check_init_blank_node_object(
-        *PARAMETERS_ALT,
-        kwargs=kwargs,
-        check_triples=False,
-    )
+    # If list of elements is not empty, expect warning
+    with pytest.warns(UserWarning) if elements else nullcontext() as record:
+
+        # Test constructor
+        alt = check_init_blank_node_object(
+            *PARAMETERS_ALT,
+            kwargs=kwargs,
+            check_triples=False,
+        )
+
+        # If expecting warnings
+        if record is not None:
+
+            # Check default warning
+            *record, default_warning = record
+            assert re.search(
+                WARNING_MESSAGE_DEFAULT, str(default_warning.message)
+            )
+
+            # If list of elements contains duplicates
+            nb_duplicates = len(elements_check) - len(set(elements_check))
+            if not allow_duplicates and nb_duplicates > 0:
+
+                # Check that one warning is raised for each duplicate
+                assert len(record) == nb_duplicates
+                for r in record:
+                    assert re.search(
+                        WARNING_MESSAGE_DUPLICATES, str(r.message)
+                    )
 
     # If duplicates are not allowed, remove them from the list
     if not allow_duplicates:

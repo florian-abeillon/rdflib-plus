@@ -7,12 +7,9 @@ from rdflib import URIRef as IRI
 
 from rdflib_plus.config import DEFAULT_CHECK_TRIPLES
 from rdflib_plus.definitions import RDFS_CLASSES
-from rdflib_plus.models.rdf.rdfs_resource import (
-    ObjectType,
-    Resource,
-    ResourceOrIri,
-)
+from rdflib_plus.models.rdf.rdfs_resource import ObjectType, ResourceOrIri
 from rdflib_plus.models.utils.collection import Collection
+from rdflib_plus.models.utils.decorators import formatted_index
 from rdflib_plus.models.utils.types import ConstraintsType
 
 
@@ -42,11 +39,7 @@ class List(Collection):
             graph (Graph):
                 Graph to search or create List into.
             elements (
-                list[
-                    Resource | IRI | Literal | Any
-                ]
-                | Collection
-                | None,
+                list[Resource | IRI | Literal | Any] | Collection | None,
                 optional
             ):
                 Elements to put in List at its creation. Defaults to None.
@@ -61,7 +54,7 @@ class List(Collection):
         """
 
         # Initialize sublists list
-        self._sublists: list[self._Sublist] = []
+        self._sublists: list[List] = []
 
         # Create List
         super().__init__(
@@ -151,11 +144,11 @@ class List(Collection):
         Args:
             first (Resource | IRI | Literal | Any):
                 Element to initialize List with.
-            rest (_Sublist | IRI, optional):
+            rest (List | IRI, optional):
                 Rest to initialize List with. Defaults to RDF.nil.
 
         Returns:
-            _Sublist: New sublist.
+            List: New sublist.
         """
 
         # Create new sublist, or use List if it is empty
@@ -171,6 +164,7 @@ class List(Collection):
 
         return sublist
 
+    @formatted_index()
     def _pop(self, index: int) -> ObjectType:
         """Delete and return element of List at given index.
 
@@ -184,7 +178,22 @@ class List(Collection):
                 Removed element.
         """
 
-        # Pop sublist from list, and delete respective element
+        # If popping the first element while there are others,
+        # just replace the first value by the second,
+        # then remove the second element
+        if index == 0 and len(self) > 1:
+
+            # Replace first element with new value
+            old_first_element = self[0]
+            self[0] = self[1]
+
+            # Remove duplicated value at second position
+            del self[1]
+
+            # Return the old first value
+            return old_first_element
+
+        # Otherwise, pop sublist from list, and delete respective element
         sublist = self._sublists.pop(index)
         element = self._elements.pop(index)
         del self._elements_formatted[index]
@@ -197,60 +206,18 @@ class List(Collection):
 
         # Otherwise, if List still has other elements
         else:
-            # Delete the current sublist whatsoever
+
+            # Delete the popped sublist whatsoever
             sublist.remove(None)
 
-            # If popping the first element
-            index = self._format_index(index)
-            if index == 0:
-                # Get the new first sublist
-                first_sublist = self._sublists[0]
+            # Get previous sublist and rest
+            prev_sublist = self._sublists[index - 1]
+            rest = RDF.nil if index == len(self) else self._sublists[index]
 
-                # Transfer main sublist to the new one
-                self._transfer_main(first_sublist)
-
-            # Otherwise
-            else:
-                # Get previous sublist and rest
-                prev_sublist = self._sublists[index - 1]
-                rest = (
-                    self._sublists[index] if index < len(self) - 1 else RDF.nil
-                )
-
-                # Link previous sublist with next one
-                prev_sublist.replace(RDF.rest, rest)
+            # Link previous sublist with next one
+            prev_sublist.replace(RDF.rest, rest)
 
         return element
-
-    def _transfer_main(self, new_main: "List") -> None:
-        """Transfer all the properties to the new main sublist.
-
-        Args:
-            new_main (List):
-                New main sublist.
-        """
-
-        # For every triple with List as subject
-        for p, o in self.predicate_objects():
-
-            # If triple is one of sublist's, ignore it
-            if p in [RDF.type, RDF.first, RDF.rest]:
-                continue
-
-            # Otherwise, remove the triple and set it to the new sublist
-            self.remove(p, o)
-            new_main.set(p, o)
-
-        # For every triple with List as object
-        for s, p in self.subject_predicates():
-
-            # Remove the triple and set it with the new sublist
-            s.remove(p, self)
-            s.set(p, new_main)
-
-        # Change List's identifiers into the new sublist's
-        self._id = new_main.id
-        self._identifier = new_main.iri
 
     def append(self, element: ObjectType) -> None:
         """Append element to the end of List.
@@ -285,10 +252,7 @@ class List(Collection):
         """Extend List with new elements.
 
         Args:
-            new_elements (
-                list[Resource | IRI | Literal | Any]
-                | Collection
-            ):
+            new_elements (list[Resource | IRI | Literal | Any] | Collection):
                 New elements to append to List.
         """
         super()._extend(new_elements)
@@ -309,6 +273,7 @@ class List(Collection):
         """
         return self._index(element, start=start, end=end)
 
+    @formatted_index(inserting=True)
     def insert(self, index: int, element: ObjectType) -> None:
         """Insert element at index-th position of List.
 
@@ -319,27 +284,32 @@ class List(Collection):
                 Element to insert into List.
         """
 
-        # If inserting after the end of the list, just append element
-        index = self._format_index(index, in_range=False)
+        # If inserting at or after the end of List, just append element
         if index > len(self) - 1:
             self._append(element)
             return
 
-        # Initialize new sublist
-        new_sublist = self._build_sublist(element, rest=self._sublists[index])
+        # If inserting a new first element
+        if index == 0:
 
-        # If not inserting the first element,
-        # get previous sublist and replace its "rest" attribute
-        if index > 0:
-            prev_sublist = self._sublists[index - 1]
-            prev_sublist.replace(RDF.rest, new_sublist)
+            # Replace first element with new value
+            old_first_element = self[0]
+            self[0] = element
 
-        # Otherwise, if inserting the first element while there are other
-        # elements, transfer main sublist to the new one
-        elif self:
-            self._transfer_main(new_sublist)
+            # Insert old value at second position
+            self.insert(1, old_first_element)
+            return
 
-        # Insert new sublist into the elements and sublists lists
+        # Otherwise, initialize new sublist
+        rest = self._sublists[index] if self else RDF.nil
+        new_sublist = self._build_sublist(element, rest=rest)
+
+        # Get previous sublist and replace its "rest" attribute
+        prev_sublist = self._sublists[index - 1]
+        prev_sublist.replace(RDF.rest, new_sublist)
+
+        # Insert new element into the elements lists,
+        # and new sublist into the sublists list
         self._elements.insert(index, element)
         self._elements_formatted.insert(
             index, new_sublist.get_value(RDF.first)

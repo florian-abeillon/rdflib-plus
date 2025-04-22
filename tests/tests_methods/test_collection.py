@@ -3,6 +3,8 @@
 import copy
 import random as rd
 import re
+from collections import Counter
+from contextlib import nullcontext
 from typing import Any, Optional
 
 import pytest
@@ -20,10 +22,23 @@ from tests.tests_methods.utils import (
     count_exact_match,
     index_exact_match,
 )
-from tests.utils import SEED, cartesian_product, check_elements, check_graph
+from tests.utils import (
+    SEED,
+    WARNING_MESSAGE_DEFAULT,
+    WARNING_MESSAGE_DEFAULT_REMOVED,
+    cartesian_product,
+    check_elements,
+    check_graph_collection,
+)
 
 # Set random seed
 rd.seed(SEED)
+
+# Set warning filter, to ignore warnings due to removing default element of
+# Alt objects (tested in tests/tests_methods/test_alt.py)
+WARNING_FILTER_DEFAULT_REMOVED = (
+    f"ignore:.+{re.escape(WARNING_MESSAGE_DEFAULT_REMOVED.format('.+'))}"
+)
 
 
 @pytest.mark.parametrize(
@@ -48,16 +63,36 @@ def test_elements(
     # If a model is specified, create instance to initialize Collection object
     # with
     if model_elements is not None:
-        elements = model_elements(SimpleGraph(), elements=elements)
+        # If model_elements is Alt and list of elements is not empty,
+        # expect warning
+        with (
+            pytest.warns(UserWarning)
+            if model_elements == Alt and elements
+            else nullcontext()
+        ):
+            elements = model_elements(SimpleGraph(), elements=elements)
 
-    # Set elements property
-    collection.elements = elements
+    # If model is Alt and list of elements is not empty, expect warning
+    with (
+        pytest.warns(UserWarning)
+        if model == Alt and elements
+        else nullcontext()
+    ) as record:
+
+        # Set elements property
+        collection.elements = elements
+
+        # If expecting warnings
+        if record is not None:
+            # Check default warning
+            assert len(record) == 1
+            assert re.search(WARNING_MESSAGE_DEFAULT, str(record[0].message))
 
     # Check that Collection object contains exactly all the elements
     check_elements(collection, elements)
 
     # Check that the graph is correct after calling the method
-    check_graph(collection, elements_check)
+    check_graph_collection(collection, elements_check)
 
 
 @pytest.mark.parametrize(
@@ -91,10 +126,19 @@ def test_add(
         elements_add = list(elements_add)
         elements_add_check = list(elements_add_check)
 
-    # If a model is specified, create instance to initialize Collection object
-    # with
+    # If a model is specified,
+    # create instance to initialize Collection object with
     if model_elements_add is not None:
-        elements_add = model_elements_add(SimpleGraph(), elements=elements_add)
+
+        # If model is Alt and list of elements is not empty, expect warning
+        with (
+            pytest.warns(UserWarning)
+            if model_elements_add == Alt and elements_add
+            else nullcontext()
+        ):
+            elements_add = model_elements_add(
+                SimpleGraph(), elements=elements_add
+            )
 
     # Freeze the state of the graph before calling the method
     graph_before = copy.deepcopy(collection.graph)
@@ -110,7 +154,9 @@ def test_add(
     check_elements(collection_new, elements)
 
     # Check that the graph is correct after calling the method
-    check_graph(collection_new, elements_check, graph_diff=graph_before)
+    check_graph_collection(
+        collection_new, elements_check, graph_diff=graph_before
+    )
 
 
 @pytest.mark.parametrize(
@@ -185,10 +231,18 @@ def test_iadd(
         elements_add = list(elements_add)
         elements_add_check = list(elements_add_check)
 
-    # If a model is specified, create instance to initialize Collection object
-    # with
+    # If a model is specified,
+    # create instance to initialize Collection object with
     if model_elements_add is not None:
-        elements_add = model_elements_add(SimpleGraph(), elements=elements_add)
+        # If model is Alt and list of elements is not empty, expect warning
+        with (
+            pytest.warns(UserWarning)
+            if model_elements_add == Alt and elements_add
+            else nullcontext()
+        ):
+            elements_add = model_elements_add(
+                SimpleGraph(), elements=elements_add
+            )
 
     # Add sequence to Collection object
     collection += elements_add
@@ -201,7 +255,7 @@ def test_iadd(
     check_elements(collection, elements)
 
     # Check that the graph is correct after calling the method
-    check_graph(collection, elements_check)
+    check_graph_collection(collection, elements_check)
 
 
 @pytest.mark.parametrize(
@@ -215,8 +269,14 @@ def test_iter(
 ):
     """Test Collection's __iter__ operator."""
 
-    # Create Collection object
-    collection = model(SimpleGraph(), elements=elements)
+    # If model is Alt and list of elements is not empty, expect warning
+    with (
+        pytest.warns(UserWarning)
+        if model == Alt and elements
+        else nullcontext()
+    ):
+        # Create Collection object
+        collection = model(SimpleGraph(), elements=elements)
 
     # Iterate over object
     i = 0
@@ -251,8 +311,14 @@ def test_len(
 ):
     """Test Collection's __len__ operator."""
 
-    # Create Collection object
-    collection = model(SimpleGraph(), elements=elements)
+    # If model is Alt and list of elements is not empty, expect warning
+    with (
+        pytest.warns(UserWarning)
+        if model == Alt and elements
+        else nullcontext()
+    ):
+        # Create Collection object
+        collection = model(SimpleGraph(), elements=elements)
 
     # Check that the length of the Collection object is correct
     assert len(collection) == len(elements)
@@ -272,8 +338,14 @@ def test_str(
 ):
     """Test Collection objects' __str__ operator."""
 
-    # Create Collection object
-    collection = model(SimpleGraph(), elements=elements)
+    # If model is Alt and list of elements is not empty, expect warning
+    with (
+        pytest.warns(UserWarning)
+        if model == Alt and elements
+        else nullcontext()
+    ):
+        # Create Collection object
+        collection = model(SimpleGraph(), elements=elements)
 
     # Get the string representation of Collection object, and parse it
     elements_str = re.findall(
@@ -282,9 +354,28 @@ def test_str(
     assert elements_str or not elements
     elements_str = elements_str.split(", ") if elements_str else []
 
-    # Check that the string representation contains all the elements
-    assert all(str(element) in elements_str for element in elements)
-    assert len(elements_str) == len(elements)
+    # If there is an ellipsis in the string representation
+    if "... " in elements_str:
+
+        # Separate first and last elements in string representation
+        index_ellipsis = elements_str.index("... ")
+        first_elements_str = elements_str[:index_ellipsis]
+        last_elements_str = elements_str[index_ellipsis + 1 :]
+
+        # Check that there is at least one element one both sides of the
+        # ellipsis
+        assert len(first_elements_str) > 0
+        assert len(last_elements_str) > 0
+
+        # Check that all elements displayed are indeed elements of collection
+        assert not bool(
+            Counter(first_elements_str + last_elements_str)
+            - Counter(map(str, elements))
+        )
+
+    # Otherwise, check that the string representation contains all the elements
+    else:
+        assert Counter(elements_str) == Counter(map(str, elements))
 
 
 @pytest.mark.parametrize(
@@ -298,8 +389,14 @@ def test_clear(
 ):
     """Test Collection objects' clear() method."""
 
-    # Create Collection object
-    collection = model(SimpleGraph(), elements=elements)
+    # If model is Alt and list of elements is not empty, expect warning
+    with (
+        pytest.warns(UserWarning)
+        if model == Alt and elements
+        else nullcontext()
+    ):
+        # Create Collection object
+        collection = model(SimpleGraph(), elements=elements)
 
     # Clear Collection object
     collection.clear()
@@ -308,7 +405,7 @@ def test_clear(
     check_elements(collection, [])
 
     # Check that the graph is correct after calling the method
-    check_graph(collection, [])
+    check_graph_collection(collection, [])
 
 
 @pytest.mark.parametrize(
@@ -325,8 +422,14 @@ def test_copy(
 ):
     """Test Collection objects' copy() method."""
 
-    # Create Collection object
-    collection = model(SimpleGraph(), elements=elements)
+    # If model is Alt and list of elements is not empty, expect warning
+    with (
+        pytest.warns(UserWarning)
+        if model == Alt and elements
+        else nullcontext()
+    ):
+        # Create Collection object
+        collection = model(SimpleGraph(), elements=elements)
 
     # Freeze the state of the graph before calling the method
     graph_before = copy.deepcopy(collection.graph)
@@ -350,7 +453,9 @@ def test_copy(
             assert not hasattr(collection_new, property_)
 
     # Check that the graph is correct after calling the method
-    check_graph(collection_new, elements_check, graph_diff=graph_before)
+    check_graph_collection(
+        collection_new, elements_check, graph_diff=graph_before
+    )
 
 
 @pytest.mark.parametrize(
@@ -387,6 +492,8 @@ def test_count(
         )
 
 
+# TODO: Not very efficient, it feels like testing the same thing multiple times
+@pytest.mark.filterwarnings(WARNING_FILTER_DEFAULT_REMOVED)
 @pytest.mark.parametrize(
     "model, elements_add, elements_add_check",
     cartesian_product(PARAMETERS_MODELS_COLLECTIONS, PARAMETERS_ELEMENT_LISTS),
@@ -429,7 +536,7 @@ def test_discard_element(
         check_elements(collection, elements)
 
         # Check that the graph is correct after calling the method
-        check_graph(collection, elements_check)
+        check_graph_collection(collection, elements_check)
 
 
 @pytest.mark.parametrize(
@@ -446,7 +553,7 @@ def test_extend(
     elements_add_check: list[IRI | Literal],
     model_elements_add: Optional[type],
 ) -> None:
-    """Test Collection objects' extend() method."""
+    """Test Collection objects' (except Alt) extend() method."""
 
     # If model is Alt, skip test (Alt does not have extend() method)
     if model == Alt:
@@ -466,7 +573,16 @@ def test_extend(
     # If a model is specified, create instance to initialize Collection object
     # with
     if model_elements_add is not None:
-        elements_add = model_elements_add(SimpleGraph(), elements=elements_add)
+
+        # If model is Alt and list of elements is not empty, expect warning
+        with (
+            pytest.warns(UserWarning)
+            if model_elements_add == Alt and elements_add
+            else nullcontext()
+        ):
+            elements_add = model_elements_add(
+                SimpleGraph(), elements=elements_add
+            )
 
     # Extend Collection object
     collection.extend(elements_add)
@@ -479,9 +595,10 @@ def test_extend(
     check_elements(collection, elements)
 
     # Check that the graph is correct after calling the method
-    check_graph(collection, elements_check)
+    check_graph_collection(collection, elements_check)
 
 
+@pytest.mark.filterwarnings(WARNING_FILTER_DEFAULT_REMOVED)
 @pytest.mark.parametrize(
     "model, elements_add, elements_add_check",
     cartesian_product(PARAMETERS_MODELS_COLLECTIONS, PARAMETERS_ELEMENT_LISTS),
@@ -528,4 +645,4 @@ def test_remove_element(
         check_elements(collection, elements)
 
         # Check that the graph is correct after calling the method
-        check_graph(collection, elements_check)
+        check_graph_collection(collection, elements_check)

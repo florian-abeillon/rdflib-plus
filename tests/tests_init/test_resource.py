@@ -38,7 +38,7 @@ def test_init_with_identifier(
     identifier = Literal(identifier, datatype=datatype)
 
     # Test constructor
-    resource = check_init_labeled_object(
+    _ = check_init_labeled_object(
         *PARAMETERS_RESOURCE,
         identifier,
         legal_identifier,

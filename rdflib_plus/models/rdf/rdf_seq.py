@@ -6,6 +6,7 @@ from rdflib import RDF
 
 from rdflib_plus.models.rdf.rdfs_container import Collection, Container
 from rdflib_plus.models.rdf.rdfs_resource import ObjectType, ResourceOrIri
+from rdflib_plus.models.utils.decorators import formatted_index
 
 
 class Seq(Container):
@@ -44,6 +45,7 @@ class Seq(Container):
         """
         return iter(self.elements[::-1])
 
+    @formatted_index()
     def __setitem__(self, index: int, element: ObjectType) -> None:
         """Replace element of Seq at given index.
 

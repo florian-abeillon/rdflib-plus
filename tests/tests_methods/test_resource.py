@@ -1,10 +1,11 @@
 """Test Resource methods"""
 
 import random as rd
+from contextlib import nullcontext
 from typing import Any
 
 import pytest
-from rdflib import DCTERMS, SKOS, Literal
+from rdflib import DCTERMS, RDF, SKOS, Literal
 from rdflib import URIRef as IRI
 
 from rdflib_plus import Resource, SimpleGraph
@@ -16,6 +17,7 @@ from tests.parameters import (
     PARAMETERS_LANGS,
     PARAMETERS_PROPERTIES_OBJECTS_RESOURCE,
     PARAMETERS_PROPERTIES_TO_OBJECTS_RESOURCE,
+    PARAMETERS_PROPERTIES_TO_STRING_REPRESENTATION,
 )
 from tests.tests_methods.utils import (
     build_object,
@@ -25,10 +27,29 @@ from tests.tests_methods.utils import (
     check_str,
     get_another_parameter,
 )
-from tests.utils import SEED, cartesian_product
+from tests.utils import (
+    SEED,
+    WARNING_MESSAGE_FORMATTING,
+    WARNING_MESSAGE_SET_OVERWRITE,
+    cartesian_product,
+)
 
 # Set random seed
 rd.seed(SEED)
+
+# Set warning filter, to ignore warnings due to illegal Class creation
+# in build_predicate_object()
+WARNING_FILTER_FORMATTING = (
+    f"ignore:.+{WARNING_MESSAGE_FORMATTING.format('.+', '.+')}"
+)
+
+# TODO: Write tests for
+# - objects()
+# - predicates()
+# - predicate_objects()
+# - subjects()
+# - subject_objects()
+# - subject_predicates()
 
 
 # TODO: Test other namespaces
@@ -51,6 +72,7 @@ def test_str(
     check_str(resource, "Resource", legal_identifier)
 
 
+@pytest.mark.filterwarnings(WARNING_FILTER_FORMATTING)
 @pytest.mark.parametrize(
     "predicate_iri, object_, object_check, is_object_resource,"
     "is_predicate_resource, with_graph",
@@ -156,6 +178,7 @@ def test_add_with_lang(
     )
 
 
+@pytest.mark.filterwarnings(WARNING_FILTER_FORMATTING)
 @pytest.mark.parametrize(
     "predicate_iri, object_, object_check, is_object_resource,"
     "is_predicate_resource, with_graph",
@@ -196,17 +219,34 @@ def test_set(
         if object_before is not None:
             triples_rem = [(resource.iri, predicate_iri, object_before)]
 
-    # Check if the method created the expected triples
-    check_method(
-        resource,
-        resource.set,
-        args=args_method,
-        triples_add=triples_add,
-        triples_rem=triples_rem,
-        with_graph=with_graph,
-    )
+    # If a value was already set to this predicate, expect warning
+    with pytest.warns(UserWarning) if triples_rem else nullcontext() as record:
+
+        # Check if the method created the expected triples
+        check_method(
+            resource,
+            resource.set,
+            args=args_method,
+            triples_add=triples_add,
+            triples_rem=triples_rem,
+            with_graph=with_graph,
+        )
+
+        # If expecting warnings, check them
+        if record is not None:
+            assert len(record) == 1
+            predicate_iri = (
+                predicate.iri if is_predicate_resource else predicate
+            )
+            assert WARNING_MESSAGE_SET_OVERWRITE.format(
+                PARAMETERS_PROPERTIES_TO_STRING_REPRESENTATION[predicate_iri],
+                object_before,
+                object_check,
+                resource.graph.identifier,
+            ) in str(record[0].message)
 
 
+@pytest.mark.filterwarnings(WARNING_FILTER_FORMATTING)
 @pytest.mark.parametrize(
     "predicate_iri, object_, object_check, is_object_resource,"
     "is_predicate_resource, lang, with_graph",
@@ -261,18 +301,35 @@ def test_set_with_lang(
         if object_before is not None:
             triples_rem = [(resource.iri, predicate_iri, object_before)]
 
-    # Check if the method created the expected triples
-    check_method(
-        resource,
-        resource.set,
-        args=args_method,
-        kwargs=kwargs_method,
-        triples_add=triples_add,
-        triples_rem=triples_rem,
-        with_graph=with_graph,
-    )
+    # If a value was already set to this predicate, expect warning
+    with pytest.warns(UserWarning) if triples_rem else nullcontext() as record:
+
+        # Check if the method created the expected triples
+        check_method(
+            resource,
+            resource.set,
+            args=args_method,
+            kwargs=kwargs_method,
+            triples_add=triples_add,
+            triples_rem=triples_rem,
+            with_graph=with_graph,
+        )
+
+        # If expecting warnings, check them
+        if record is not None:
+            assert len(record) == 1
+            predicate_iri = (
+                predicate.iri if is_predicate_resource else predicate
+            )
+            assert WARNING_MESSAGE_SET_OVERWRITE.format(
+                PARAMETERS_PROPERTIES_TO_STRING_REPRESENTATION[predicate_iri],
+                object_before,
+                object_check,
+                resource.graph.identifier,
+            ) in str(record[0].message)
 
 
+@pytest.mark.filterwarnings(WARNING_FILTER_FORMATTING)
 @pytest.mark.parametrize(
     "predicate_iri, object_1, object_1_check, is_object_1_resource,"
     "is_predicate_resource, with_graph",
@@ -315,6 +372,7 @@ def test_set_with_replace(
         object_2,
         is_object_2_resource,
     )
+    predicate_iri = predicate.iri if is_predicate_resource else predicate
 
     # If necessary, create a new, separate graph
     kwargs = {}
@@ -322,8 +380,19 @@ def test_set_with_replace(
         graph = SimpleGraph()
         kwargs["graph"] = graph
 
-    # Set them
-    resource.set(predicate, object_1, **kwargs)
+    # If setting in the same graph a different value than was already set at
+    # Resource's creation, mute warnings
+    predicate_iri = predicate.iri if is_predicate_resource else predicate
+    object_1_iri = object_1.iri if is_object_1_resource else object_1
+    with (
+        pytest.warns(UserWarning)
+        if not with_graph
+        and predicate_iri in [RDF.type, DCTERMS.identifier]
+        and (resource.iri, predicate_iri, object_1_iri) not in resource.graph
+        else nullcontext()
+    ):
+        # Set value
+        resource.set(predicate, object_1, **kwargs)
 
     # Set args and kwargs to feed the method with
     args_method = (predicate, object_2)
@@ -349,6 +418,7 @@ def test_set_with_replace(
     )
 
 
+@pytest.mark.filterwarnings(WARNING_FILTER_FORMATTING)
 @pytest.mark.parametrize(
     "predicate_iri, object_, object_check, is_object_resource,"
     "is_predicate_resource",
@@ -375,14 +445,15 @@ def test_get_value(
         is_object_resource,
     )
 
-    # Set them
-    resource.set(predicate, object_)
+    # Set value (replace=True to mute potential warnings)
+    resource.set(predicate, object_, replace=True)
 
     # Retrieve the value just set, and check it
     assert resource.get_value(predicate) == object_check
     assert resource.get_value(predicate_iri) == object_check
 
 
+@pytest.mark.filterwarnings(WARNING_FILTER_FORMATTING)
 @pytest.mark.parametrize(
     "predicate_iri, object_, object_check, is_object_resource,"
     "is_predicate_resource, with_o, with_graph",
@@ -443,7 +514,7 @@ def test_remove(
         kwargs=kwargs_method,
         triples_rem=triples_rem,
         with_graph=with_graph,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -537,7 +608,7 @@ def test_remove_multiple(
         kwargs=kwargs_method,
         triples_rem=triples_rem,
         with_graph=with_graph,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -614,7 +685,7 @@ def test_remove_with_lang(
         kwargs=kwargs_method,
         triples_rem=triples_rem,
         with_graph=with_graph,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -683,7 +754,7 @@ def test_replace(
         triples_add=triples_add,
         triples_rem=triples_rem,
         with_graph=with_graph,
-        **kwargs
+        **kwargs,
     )
 
 

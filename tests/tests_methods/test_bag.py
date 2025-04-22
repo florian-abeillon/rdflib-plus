@@ -1,13 +1,14 @@
 """Test Bag's methods"""
 
 import random as rd
+from contextlib import nullcontext
 from typing import Any, Optional
 
 import pytest
 from rdflib import Literal
 from rdflib import URIRef as IRI
 
-from rdflib_plus import Bag, SimpleGraph
+from rdflib_plus import Alt, Bag, SimpleGraph
 from tests.parameters import (
     PARAMETERS_ELEMENT_LISTS,
     PARAMETERS_ELEMENTS,
@@ -98,7 +99,15 @@ def test_extend(
     # If a model is specified, create instance to initialize Bag
     # with
     if model_elements_add is not None:
-        elements_add = model_elements_add(SimpleGraph(), elements=elements_add)
+        # If model is Alt and list of elements is not empty, expect warning
+        with (
+            pytest.warns(UserWarning)
+            if model_elements_add == Alt and elements_add
+            else nullcontext()
+        ):
+            elements_add = model_elements_add(
+                SimpleGraph(), elements=elements_add
+            )
 
     # Extend Bag
     bag.extend(elements_add)
